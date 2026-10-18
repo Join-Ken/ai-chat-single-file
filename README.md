@@ -12,7 +12,15 @@
 > 把它放上來只是因為「一個 HTML 檔就能用的 AI 聊天工具」這件事本身有點意思，也許對某些人有幫助。**請把它當成一個可以自己拿去改的起點，而不是一個有人照顧的產品。**
 > 以下內容全部由AI生成。
 
-🔗 **線上試用**：https://Join-Ken.github.io/ai-chat-single-file/
+🔗 **線上試用**：
+## 兩個版本
+
+| 版本 | 網址 | 說明 |
+|---|---|---|
+| 基礎版 | https://Join-Ken.github.io/ai-chat-single-file/ | 通用 AI 聊天，支援記憶、摘要、RAG、聯網 |
+| RPG 版 | https://Join-Ken.github.io/ai-chat-single-file/rpg/ | 在基礎版之上加了 RPG 模式、設定庫、狀態卡 |
+
+兩個版本**資料完全隔離**：各自的對話、記憶、設定不會互相干擾，可以同時使用。
 
 ---
 
