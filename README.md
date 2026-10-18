@@ -44,14 +44,27 @@
 
 ## ⚠️ 相容性說明（重要）
 
-本工具是**純前端**實作，請求直接從瀏覽器發出，因此**受 CORS 策略限制**。
+本工具是**純前端**實作，請求直接從瀏覽器發出，因此**受 CORS 策略限制**。填 Key 前請先確認你用的服務是否允許瀏覽器直連。
 
-- ✅ **已實測可用**：DeepSeek
-- ❌ **無法直接連線**：OpenAI 官方 API（`api.openai.com` 不允許瀏覽器直連）
-- ❓ **理論上可用、未逐一驗證**：其他開放 CORS 的 OpenAI 相容服務，例如 OpenRouter、SiliconFlow、Kimi（`api.moonshot.cn`）等
-- ❓ **本地模型**：Ollama 等需自行設定 `OLLAMA_ORIGINS` 允許跨域，否則同樣會被瀏覽器攔截
+**已實測可用**
+- **DeepSeek**（`https://api.deepseek.com/v1`）：在作者本人的使用環境中可正常串流對話。注意：網路上關於 DeepSeek 是否開放 CORS 存在矛盾的說法，部分開發者報告仍會遇到跨域錯誤。**請以你自己的實測結果為準**。
 
-填 API Key 前，請先確認你用的服務是否允許瀏覽器直連。若連不上，通常是 CORS 問題，不是 Key 填錯。
+**確認開放 CORS，理論上可用（未逐一驗證）**
+- **OpenRouter**（`https://openrouter.ai/api/v1`）：多個獨立來源確認其 CORS 為開放狀態（`ACAO: *`），允許瀏覽器直連。
+
+**可能需要額外設定，未驗證**
+- **SiliconFlow**：有使用者回饋需要在帳號或 API 設定中**手動勾選「Enable CORS」**後，瀏覽器才能直連。預設狀態下可能失敗。
+- **Kimi（`api.moonshot.cn` 中國區端點）**：有來源稱支援瀏覽器直連，也有來源稱官方 API 未開放 CORS。資訊矛盾，**不建議在未測試的情況下直接依賴**。
+
+**普遍報告無法直接連線**
+- **OpenAI 官方 API（`api.openai.com`）**：廣泛的開發者報告和技術文件均指出，OpenAI 官方端點會阻止瀏覽器直接請求，CORS 預檢通常會失敗。本工具**不建議**填寫 OpenAI 官方 Base URL。
+
+**本地模型需自行放行**
+- **Ollama**：預設**禁用跨域存取**，瀏覽器請求會被攔截。必須在啟動 Ollama 前設定環境變數放行來源，例如：
+  - macOS / Linux：`OLLAMA_ORIGINS="*" ollama serve`
+  - Windows（PowerShell）：`$env:OLLAMA_ORIGINS="*"; ollama serve`
+
+若連線失敗，最常見的原因是 **CORS 攔截，而非 Key 填錯**。瀏覽器開發者工具（F12）的 Console 面板如果出現 `Blocked by CORS policy` 或 `No 'Access-Control-Allow-Origin' header`，就是跨域被拒，與 Key 無關。
 
 ## ⚠️ 安全提醒
 
