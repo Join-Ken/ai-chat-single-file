@@ -1,0 +1,1766 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 聊天（多会话 · 记忆版）</title>
+<style>
+  :root{--bg:#f5f6f8;--panel:#fff;--border:#e5e7eb;--text:#1f2328;--muted:#6b7280;--primary:#2b7fff;--primary-weak:#e8f1ff;--danger:#d92d20;}
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{height:100dvh;overflow:hidden;font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;font-size:14px;color:var(--text);background:var(--bg);display:flex;}
+  button{font:inherit;cursor:pointer;}
+  #sidebar{width:230px;flex:0 0 230px;display:flex;flex-direction:column;background:#fbfbfc;border-right:1px solid var(--border);height:100%;transition:transform .2s;}
+  .side-head{padding:8px;}
+  #newBtn{width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:#fff;font-weight:600;}
+  #newBtn:hover{background:var(--primary-weak);}
+  #convList{flex:1;overflow-y:auto;padding:0 6px 6px;}
+  .conv-item{display:flex;align-items:center;gap:4px;padding:8px;border-radius:7px;cursor:pointer;font-size:13px;color:#374151;margin-bottom:2px;}
+  .conv-item:hover{background:#eef0f3;}
+  .conv-item.active{background:var(--primary-weak);color:#0b4ea2;font-weight:600;}
+  .conv-title{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .conv-del{border:none;background:transparent;color:#9ca3af;font-size:15px;padding:0 4px;border-radius:4px;visibility:hidden;}
+  .conv-item:hover .conv-del,.conv-item.active .conv-del{visibility:visible;}
+  .conv-del:hover{color:var(--danger);background:#fee4e2;}
+  .side-foot{padding:6px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:4px;}
+  .side-foot button{padding:6px;border-radius:6px;border:1px solid var(--border);background:#fff;font-size:12px;}
+  .side-foot button:hover{background:#f3f4f6;}
+  #main{flex:1;min-width:0;display:flex;flex-direction:column;height:100%;}
+  #topbar{display:flex;align-items:center;gap:4px;padding:6px 10px;background:var(--panel);border-bottom:1px solid var(--border);}
+  #chatTitle{flex:1;margin:0;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .icon-btn{border:none;background:transparent;color:#4b5563;width:30px;height:30px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;}
+  .icon-btn:hover{background:#f0f2f5;}
+  #menuBtn{display:none;}
+  #config{border-bottom:1px solid var(--border);background:var(--panel);padding:0 10px;}
+  #config summary{cursor:pointer;padding:6px 0;font-size:12.5px;color:var(--muted);list-style:none;}
+  #config summary::-webkit-details-marker{display:none;}
+  #config summary::before{content:'▸ ';}
+  #config[open] summary::before{content:'▾ ';}
+  .cfg-body{padding-bottom:8px;display:grid;gap:6px;max-height:50vh;overflow-y:auto;}
+  .cfg-body label{display:grid;grid-template-columns:86px 1fr;align-items:center;gap:6px;font-size:12.5px;color:#374151;}
+  .cfg-body input,.cfg-body textarea{width:100%;padding:5px 7px;border:1px solid #d8dbe0;border-radius:6px;font:inherit;font-size:12.5px;background:#fff;}
+  .cfg-body input:focus,.cfg-body textarea:focus{outline:none;border-color:var(--primary);}
+  .cfg-body textarea{resize:vertical;min-height:34px;}
+  .cfg-body .sys-box{display:flex;gap:6px;align-items:flex-start;}
+  .cfg-body .sys-box textarea{flex:1;min-width:0;}
+  .scope-toggle{flex:0 0 auto;padding:5px 9px;border-radius:6px;border:1px solid var(--border);background:#fff;font-size:11.5px;color:#374151;cursor:pointer;white-space:nowrap;}
+  .scope-toggle:hover{background:#f3f4f6;}
+  .scope-toggle.on{background:var(--primary-weak);border-color:#bcd7ff;color:#0b4ea2;}
+  .cfg-actions{display:flex;align-items:center;gap:6px;}
+  #saveCfgBtn{padding:5px 12px;border-radius:6px;border:1px solid #bcd7ff;background:var(--primary-weak);color:#0b4ea2;font-weight:600;font-size:12.5px;}
+  #saveTip{font-size:12px;color:#0a7a2f;}
+  #memoryPanel{border-bottom:1px solid var(--border);background:#fffdf5;padding:0 10px;}
+  #memoryPanel summary{cursor:pointer;padding:6px 0;font-size:12.5px;color:#92700c;list-style:none;}
+  #memoryPanel summary::-webkit-details-marker{display:none;}
+  #memoryPanel summary::before{content:'▸ ';}
+  #memoryPanel[open] summary::before{content:'▾ ';}
+  .mem-body{padding-bottom:8px;display:grid;gap:5px;max-height:50vh;overflow-y:auto;}
+  .mem-item{display:flex;align-items:center;gap:6px;font-size:12.5px;background:#fff;border:1px solid #f0e6c8;border-radius:6px;padding:4px 8px;}
+  .mem-idx{color:#92700c;font-weight:600;flex:0 0 24px;}
+  .mem-text{flex:1;word-break:break-word;}
+  .mem-del{border:none;background:transparent;color:#c00;cursor:pointer;font-size:14px;}
+  .mem-add{display:flex;gap:4px;}
+  .mem-add input{flex:1;padding:5px;border:1px solid #d8dbe0;border-radius:6px;font-size:12.5px;}
+  .mem-add button{padding:5px 10px;border-radius:6px;border:1px solid #bcd7ff;background:var(--primary-weak);font-size:12.5px;}
+  .mem-scope{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;color:#92700c;background:#fef8e7;border:1px solid #f0e6c8;border-radius:6px;padding:5px 8px;margin:2px 0 4px;}
+  .mem-scope button{padding:3px 10px;border-radius:6px;border:1px solid #d8dbe0;background:#fff;font-size:12px;color:#374151;}
+  .mem-scope button:hover{background:#f3f4f6;}
+  #chatWrap{position:relative;flex:1;min-height:0;display:flex;}
+  #chat{flex:1;overflow-y:auto;padding:14px 12px 8px;display:flex;flex-direction:column;gap:10px;}
+  .empty{margin:auto;color:#9ca3af;font-size:13px;}
+  .msg{display:flex;flex-direction:column;max-width:min(760px,88%);}
+  .msg.user{align-self:flex-end;align-items:flex-end;}
+  .msg.ai{align-self:flex-start;align-items:flex-start;}
+  .bubble{padding:8px 12px;border-radius:11px;line-height:1.6;word-break:break-word;overflow-wrap:anywhere;font-size:14px;}
+  .msg.user .bubble{background:var(--primary);color:#fff;border-bottom-right-radius:4px;}
+  .msg.ai .bubble{background:#fff;border:1px solid var(--border);border-bottom-left-radius:4px;}
+  .msg.ai.error .bubble{background:#fff6f5;border-color:#ffd4d0;color:var(--danger);}
+  .notice{color:#6b7280;font-size:12.5px;}
+  .summary-bar{align-self:center;max-width:min(760px,92%);position:sticky;top:0;z-index:2;font-size:12px;color:#8a6d0b;background:#fffdf0;border:1px dashed #e8d9a3;border-radius:8px;padding:5px 10px;line-height:1.6;display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+  .summary-bar .summary-toggle{border:none;background:transparent;color:#0b62d6;font-size:12px;padding:0;text-decoration:underline;}
+  .summary-bar .summary-text{flex-basis:100%;color:#4b5563;white-space:pre-wrap;word-break:break-word;font-size:12.5px;}
+  .rag-bar{align-self:center;max-width:min(760px,92%);font-size:12px;color:#5b6b8a;background:#f4f7fc;border:1px dashed #c8d8ef;border-radius:8px;padding:4px 10px;line-height:1.6;}
+  .rag-bar[hidden]{display:none;}
+  .think-block{margin:0 0 8px;padding:6px 10px 8px;border:1px dashed #d7dae0;border-radius:8px;background:#fafbfc;}
+  .think-head{display:flex;align-items:center;gap:6px;font-size:12px;color:#8b8f96;}
+  .think-toggle{border:none;background:transparent;color:#0b62d6;font-size:12px;padding:0;text-decoration:underline;cursor:pointer;}
+  .think-body{margin-top:5px;max-height:220px;overflow-y:auto;font-size:12.5px;line-height:1.65;color:#6b7280;white-space:pre-wrap;word-break:break-word;}
+  .think-body[hidden]{display:none;}
+  .actions{display:flex;gap:4px;margin-top:3px;opacity:0;transition:opacity .15s;align-items:center;}
+  .msg:hover .actions{opacity:1;}
+  .actions button{border:none;background:transparent;color:var(--muted);font-size:11.5px;padding:2px 6px;border-radius:4px;}
+  .actions button:hover{background:#eef0f3;color:var(--text);}
+  @media(hover:none){.actions{opacity:1;}}
+  .bubble h1,.bubble h2,.bubble h3,.bubble h4{margin:8px 0 4px;font-size:15px;line-height:1.4;}
+  .bubble h1:first-child,.bubble h2:first-child,.bubble h3:first-child{margin-top:0;}
+  .bubble ul,.bubble ol{margin:4px 0;padding-left:20px;}
+  .bubble li{margin:1px 0;}
+  .bubble blockquote{margin:4px 0;padding:4px 8px;border-left:3px solid #d0d7de;color:#57606a;background:#f6f8fa;border-radius:0 5px 5px 0;}
+  .bubble a{color:#0b62d6;}
+  .bubble code{font-family:Consolas,monospace;font-size:12.5px;background:rgba(0,0,0,.06);padding:1px 4px;border-radius:4px;}
+  .bubble pre.code{margin:6px 0;padding:9px 11px;background:#1f2430;color:#e6edf3;border-radius:8px;overflow-x:auto;line-height:1.5;}
+  .bubble pre.code code{background:none;padding:0;color:inherit;font-size:12.5px;}
+  .bubble .code-block{position:relative;margin:6px 0;}
+  .bubble .code-block pre.code{margin:0;}
+  .bubble .code-copy{position:absolute;top:6px;right:6px;z-index:2;padding:2px 8px;font-size:11.5px;line-height:1.6;border-radius:5px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.14);color:#dbe4ee;opacity:0;transition:opacity .15s;cursor:pointer;}
+  .bubble .code-block:hover .code-copy{opacity:1;}
+  @media(hover:none){.bubble .code-copy{opacity:1;}}
+  .bubble .table-wrap{overflow-x:auto;margin:7px 0;max-width:100%;}
+  .bubble table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.5;}
+  .bubble th,.bubble td{border:1px solid #dfe3e8;padding:5px 9px;text-align:left;vertical-align:top;word-break:break-word;overflow-wrap:break-word;}
+  .bubble th{background:#f3f5f7;font-weight:600;}
+  .bubble tbody tr:nth-child(even){background:#fafbfc;}
+  .typing{display:inline-flex;gap:3px;align-items:center;height:16px;}
+  .typing i{width:5px;height:5px;border-radius:50%;background:#9ca3af;animation:blink 1.2s infinite;}
+  .typing i:nth-child(2){animation-delay:.2s;}
+  .typing i:nth-child(3){animation-delay:.4s;}
+  .caret{display:inline-block;width:6px;height:14px;background:var(--primary);vertical-align:-2px;border-radius:1px;animation:blink 1s steps(2) infinite;}
+  @keyframes blink{0%,80%,100%{opacity:.25;}40%{opacity:1;}}
+  #toBottom{position:absolute;right:12px;bottom:8px;width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:#fff;color:#4b5563;box-shadow:0 2px 8px rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center;font-size:13px;}
+  #toBottom[hidden]{display:none;}
+  #bottom{display:flex;gap:6px;align-items:flex-end;padding:8px 12px 10px;background:var(--panel);border-top:1px solid var(--border);}
+  #input{flex:1;min-height:40px;max-height:160px;padding:9px 12px;resize:none;border:1px solid #d8dbe0;border-radius:10px;font:inherit;font-size:14px;line-height:1.5;outline:none;background:#fff;overflow-y:auto;}
+  #input:focus{border-color:var(--primary);}
+  #searchBtn{flex:0 0 auto;width:40px;height:40px;border-radius:10px;border:1px solid var(--border);background:#fff;font-size:16px;line-height:1;opacity:.5;}
+  #searchBtn.on{opacity:1;border-color:#bcd7ff;background:var(--primary-weak);}
+  #sendBtn{padding:0 16px;height:40px;border-radius:10px;border:none;background:var(--primary);color:#fff;font-weight:600;}
+  #sendBtn:hover:not(:disabled){background:#1c6ef0;}
+  #sendBtn:disabled{background:#9ec3ff;cursor:not-allowed;}
+  #stopBtn{height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--border);background:#fff;color:var(--danger);font-weight:600;}
+  #stopBtn[hidden]{display:none;}
+  #scrim{display:none;}
+  @media(max-width:760px){
+    #sidebar{position:fixed;z-index:30;left:0;top:0;height:100%;transform:translateX(-100%);box-shadow:0 0 24px rgba(0,0,0,.15);}
+    #sidebar.open{transform:none;}
+    #menuBtn{display:inline-flex;}
+    .conv-del{visibility:visible;}
+    #scrim{position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:25;}
+    #scrim.show{display:block;}
+    .msg{max-width:94%;}
+  }
+</style>
+</head>
+<body>
+
+<div id="scrim"></div>
+
+<aside id="sidebar">
+  <div class="side-head"><button id="newBtn">＋ 新建对话</button></div>
+  <div id="convList"></div>
+  <div class="side-foot">
+    <button id="exportBtn">导出当前 (.md)</button>
+    <button id="exportAllBtn">导出全部 (.json)</button>
+    <button id="importBtn">导入 (.json)</button>
+    <input type="file" id="importFile" accept=".json" hidden>
+  </div>
+</aside>
+
+<main id="main">
+  <div id="topbar">
+    <button id="menuBtn" class="icon-btn" title="会话列表">☰</button>
+    <h1 id="chatTitle">新对话</h1>
+    <button id="renameBtn" class="icon-btn" title="重命名">✎</button>
+    <button id="sealBtn" class="icon-btn" title="压缩并封存（之后不再读取早期原文）">📦</button>
+    <button id="clearBtn" class="icon-btn" title="清空当前对话">🧹</button>
+  </div>
+
+  <details id="config">
+    <summary>API 设置</summary>
+    <div class="cfg-body">
+      <label>Base URL<input id="baseUrl" value="https://api.deepseek.com/v1"></label>
+      <label>API Key<input id="apiKey" type="password" placeholder="在此填写 API Key" autocomplete="off"></label>
+
+      <label>模型<input id="model" value="deepseek-chat"></label>
+      <label>System<span class="sys-box"><textarea id="systemPrompt" rows="2" placeholder="可选：系统提示词"></textarea><button type="button" id="sysScopeBtn" class="scope-toggle" title="切换提示词作用范围">全局</button></span></label>
+      <label>温度<input id="temperature" type="number" min="0" max="2" step="0.1" value="0.7"></label>
+      <label>搜索 Key<input id="searchKey" type="password" placeholder="可选：tavily.com 的 key，用于联网" autocomplete="off"></label>
+      <div class="cfg-actions"><button id="saveCfgBtn">保存配置</button><span id="saveTip"></span></div>
+    </div>
+  </details>
+
+  <details id="memoryPanel">
+    <summary>记忆库（AI 可自动修改，也可手动编辑）</summary>
+    <div class="mem-body" id="memBody"></div>
+  </details>
+
+  <div id="chatWrap">
+    <div id="chat"></div>
+    <button id="toBottom" hidden title="回到底部">↓</button>
+  </div>
+
+  <div id="bottom">
+    <button id="searchBtn" title="联网搜索（需先填搜索 Key）">🌐</button>
+    <textarea id="input" rows="1" placeholder="输入消息，Enter 发送 / Shift+Enter 换行"></textarea>
+    <button id="stopBtn" hidden>停止</button>
+    <button id="sendBtn">发送</button>
+  </div>
+</main>
+
+<script>
+/* ============ 基础工具 ============ */
+let seq = 0;
+function uid(p){ seq = (seq + 1) % 100000; return p + '_' + Date.now().toString(36) + '_' + seq.toString(36) + Math.random().toString(36).slice(2, 6); }
+function escapeHtml(s){
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/* 把模型输出的 Markdown 转成 HTML。
+   支持：代码块（带复制按钮）、行内代码、粗体、删除线、斜体、链接、
+   标题、引用、有序/无序列表、表格。
+   源码里刻意不出现连续的三个反引号，用 String.fromCharCode(96) 代替。 */
+function mdToHtml(src){
+  let s = escapeHtml(src == null ? '' : src);
+  const BT = String.fromCharCode(96);
+  const FENCE = BT + BT + BT;
+  const blocks = [];
+  const inls = [];
+  let guard = 0;
+
+  /* 1. 抽出代码块 */
+  while(guard++ < 500){
+    const i = s.indexOf(FENCE);
+    if(i < 0) break;
+    const bodyStart = i + FENCE.length;
+    const j = s.indexOf(FENCE, bodyStart);
+    const codeRaw = j < 0 ? s.slice(bodyStart) : s.slice(bodyStart, j);
+    const endPos = j < 0 ? s.length : j + FENCE.length;
+    const code = codeRaw
+      .replace(/^[ \t]*[A-Za-z0-9+#._-]*[ \t]*\r?\n/, '')
+      .replace(/\n+$/, '');
+    const ph = '\u0000' + blocks.length + '\u0000';
+    blocks.push('<div class="code-block"><button type="button" class="code-copy">复制</button><pre class="code"><code>' + code + '</code></pre></div>');
+    s = s.slice(0, i) + ph + s.slice(endPos);
+  }
+
+  /* 2. 抽出行内代码 */
+  let k = 0;
+  while(k++ < 500){
+    const a = s.indexOf(BT);
+    if(a < 0) break;
+    const b = s.indexOf(BT, a + 1);
+    if(b < 0){ s = s.slice(0, a) + s.slice(a + 1); continue; }
+    const inner = s.slice(a + 1, b);
+    if(inner.indexOf('\n') >= 0){ s = s.slice(0, a) + s.slice(a + 1); continue; }
+    const ph2 = '\u0001' + inls.length + '\u0001';
+    inls.push('<code>' + inner + '</code>');
+    s = s.slice(0, a) + ph2 + s.slice(b + 1);
+  }
+
+  /* 3. 行内格式 */
+  s = s.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/~~([^~\n]+)~~/g, '<del>$1</del>');
+  s = s.replace(/(^|[^*\w])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+  s = s.replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+  /* 4. 标题 */
+  s = s.replace(/^[ \t]{0,3}(#{1,6})[ \t]+(.*)$/gm, (m, hashes, text) => {
+    const lv = Math.min(hashes.length, 6);
+    return '<h' + lv + '>' + text + '</h' + lv + '>';
+  });
+
+  /* 5. 引用：连续的几行合成一个 blockquote，行内用 <br> 隔开 */
+  {
+    const lines = s.split('\n');
+    const out = [];
+    let buf = [];
+    const flush = () => {
+      if(buf.length) out.push('<blockquote>' + buf.join('<br>') + '</blockquote>');
+      buf = [];
+    };
+    for(const ln of lines){
+      const m = ln.match(/^[ \t]*&gt;[ \t]?(.*)$/);
+      if(m) buf.push(m[1]);
+      else { flush(); out.push(ln); }
+    }
+    flush();
+    s = out.join('\n');
+  }
+
+  /* 6. 表格：逐行扫描，宽松匹配（不要求行首是竖线） */
+  {
+    const lines = s.split('\n');
+    const out = [];
+    const splitCells = ln => {
+      let t = String(ln == null ? '' : ln).trim();
+      if(t.charAt(0) === '|') t = t.slice(1);
+      if(t.charAt(t.length - 1) === '|') t = t.slice(0, -1);
+      return t.split('|').map(c => c.trim());
+    };
+    const isSepLine = ln => {
+      const t = String(ln == null ? '' : ln).trim();
+      if(t === '' || t.indexOf('-') < 0) return false;
+      return /^[|:\-\s]+$/.test(t);
+    };
+    const cellInner = c => String(c == null ? '' : c).replace(/\u0001(\d+)\u0001/g, (m, n) => inls[+n] || '');
+    let i2 = 0;
+    while(i2 < lines.length){
+      const cur = lines[i2];
+      const nxt = lines[i2 + 1];
+      if(cur != null && nxt != null && cur.indexOf('|') >= 0 && isSepLine(nxt)){
+        const heads = splitCells(cur);
+        const seps = splitCells(nxt);
+        let j2 = i2 + 2;
+        const rows = [];
+        while(j2 < lines.length && lines[j2].indexOf('|') >= 0 && lines[j2].trim() !== ''){
+          rows.push(splitCells(lines[j2]));
+          j2++;
+        }
+        if(heads.length && heads.some(h2 => h2 !== '')){
+          const aligns = heads.map((h2, n) => {
+            const c = seps[n] || '';
+            const l = c.charAt(0) === ':';
+            const r = c.charAt(c.length - 1) === ':';
+            return l && r ? 'center' : (r ? 'right' : (l ? 'left' : ''));
+          });
+          let html = '<div class="table-wrap"><table><thead><tr>';
+          heads.forEach((h2, n) => {
+            html += '<th' + (aligns[n] ? ' style="text-align:' + aligns[n] + '"' : '') + '>' + cellInner(h2) + '</th>';
+          });
+          html += '</tr></thead><tbody>';
+          rows.forEach(r => {
+            html += '<tr>';
+            heads.forEach((h2, n) => {
+              html += '<td' + (aligns[n] ? ' style="text-align:' + aligns[n] + '"' : '') + '>' + cellInner(r[n]) + '</td>';
+            });
+            html += '</tr>';
+          });
+          html += '</tbody></table></div>';
+          out.push('\u0000' + blocks.length + '\u0000');
+          blocks.push(html);
+          i2 = j2;
+          continue;
+        }
+      }
+      out.push(cur);
+      i2++;
+    }
+    s = out.join('\n');
+  }
+
+  /* 7. 列表：连续同类型的行合成一组，有序和无序混排时各自成型；
+        纯符号的一行（* * *、- - -）当分隔线，不当作列表项 */
+  {
+    const lines = s.split('\n');
+    const out = [];
+    let curTag = '';
+    let buf = [];
+    const flush = () => {
+      if(curTag && buf.length) out.push('<' + curTag + '>' + buf.join('') + '</' + curTag + '>');
+      curTag = ''; buf = [];
+    };
+    const isRule = ln => /^[ \t]*([-*_])[ \t]*(?:\1[ \t]*){2,}$/.test(ln);
+    for(const ln of lines){
+      if(isRule(ln)){ flush(); out.push(ln); continue; }
+      const mUl = ln.match(/^[ \t]*[-*+][ \t]+(.*)$/);
+      const mOl = mUl ? null : ln.match(/^[ \t]*\d+[.)][ \t]+(.*)$/);
+      if(mUl){
+        if(curTag !== 'ul'){ flush(); curTag = 'ul'; }
+        buf.push('<li>' + mUl[1] + '</li>');
+      }else if(mOl){
+        if(curTag !== 'ol'){ flush(); curTag = 'ol'; }
+        buf.push('<li>' + mOl[1] + '</li>');
+      }else{
+        flush();
+        out.push(ln);
+      }
+    }
+    flush();
+    s = out.join('\n');
+  }
+
+  /* 8. 换行 */
+  s = s.replace(/\r\n/g, '\n').replace(/[ \t]+\n/g, '\n');
+  s = s.replace(/\n{2,}/g, '<br><br>').replace(/\n/g, '<br>');
+
+  /* 9. 还原占位 */
+  s = s.replace(/\u0001(\d+)\u0001/g, (m, n) => inls[+n] || '');
+  s = s.replace(/(?:<br>)*\u0000(\d+)\u0000(?:<br>)*/g, (m, n) => blocks[+n] || '');
+  return s;
+}
+
+function copyText(t){
+  if(navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t);
+  return new Promise((resolve, reject) => {
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = t;
+      ta.style.position = 'fixed'; ta.style.left = '-9999px'; ta.style.top = '0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      ok ? resolve() : reject(new Error('copy failed'));
+    }catch(e){ reject(e); }
+  });
+}
+
+/* ============ IndexedDB ============ */
+const DB_NAME = 'ChatAppDB', DB_VERSION = 1, STORE = 'conversations';
+let db = null;
+const allConvs = {};
+let currentId = null;
+let busy = false;
+let activeReq = null;
+
+function openDB(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if(!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE, { keyPath: 'id' });
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = e => reject(e.target.error);
+  });
+}
+function dbGetAll(){
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(STORE, 'readonly').objectStore(STORE).getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+function dbPut(conv){
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(STORE, 'readwrite').objectStore(STORE).put(conv);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+function dbDelete(id){
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(STORE, 'readwrite').objectStore(STORE).delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+/* ============ 上下文摘要 ============ */
+/* 把代码块换成一句话描述，让摘要和检索不必读整段代码 */
+function stripCodeForSummary(text){
+  const BT = String.fromCharCode(96);
+  const FENCE = BT + BT + BT;
+  let s = String(text || '');
+  const re = new RegExp(FENCE + '[^\\n]*\\n([\\s\\S]*?)' + FENCE, 'g');
+  s = s.replace(re, (m, body) => {
+    const lines = body.split('\n');
+    const head = lines.slice(0, 2).join(' ').replace(/\s+/g, ' ').trim().slice(0, 150);
+    return '\n[代码块，约 ' + lines.length + ' 行，开头：' + head + ' ……其余省略]\n';
+  });
+  s = s.replace(/\n{3,}/g, '\n\n');
+  if(s.length > 1500) s = s.slice(0, 1500) + '…';
+  return s.trim();
+}
+
+const SUMMARY_TRIGGER = 40;
+const SUMMARY_KEEP = 16;
+const SUMMARY_MIN_BATCH = 12;
+const SUMMARY_MAX_CHARS = 800;
+
+let summaryBusy = false;
+let lastSummaryTry = 0;
+
+function summaryPromptOf(oldSummary, batchText){
+  return '你的任务是把聊天记录压缩成一段"前情提要"，供之后继续对话时参考。\n\n'
+    + (oldSummary ? '【已有的前情提要】\n' + oldSummary + '\n\n' : '')
+    + '【需要合并进去的新对话】\n' + batchText + '\n\n'
+    + '要求：\n'
+    + '1. 输出更新后的完整前情提要，把已有提要和新的对话合成一段连贯内容，不要出现"新增""补充"这类字样。\n'
+    + '2. 重点保留：双方的身份和称呼、用户的偏好与禁忌、正在做的项目及进度、达成过的约定或结论、用户提过的重要事实、明确还没做完的事。\n'
+    + '3. 对话中出现的具体事实务必保留原样：文件/变量/函数名、代码改动的位置、数字和参数、用户明确说过的要求、定了的决定、还没解决的问题。宁可长一点，也不要模糊成"讨论了一些代码问题"。\n'
+    + '4. 用简洁陈述句，不要寒暄客套，不要评价对话本身。\n'
+    + '5. 不超过 ' + SUMMARY_MAX_CHARS + ' 字。\n'
+    + '6. 直接输出前情提要正文，不要任何前缀、标题或解释。';
+}
+
+async function maybeSummarize(conv, cfg, force){
+  if(summaryBusy || !cfg.apiKey) return false;
+  const total = conv.messages.length;
+  const summarized = conv.summarized || 0;
+  let end;
+
+  if(force){
+    end = Math.max(summarized, total - 2);
+    if(end <= summarized) return true;
+  }else{
+    if(total - summarized < SUMMARY_TRIGGER) return true;
+    end = total - SUMMARY_KEEP;
+    if(end - summarized < SUMMARY_MIN_BATCH) return true;
+    if(Date.now() - lastSummaryTry < 60000) return true;
+  }
+
+  const batch = conv.messages.slice(summarized, end)
+    .filter(m => !m.pending && !m.error && m.content && m.content.trim());
+  if(!batch.length){
+    conv.summarized = end;
+    try{ await dbPut(conv); }catch(e){}
+    return true;
+  }
+
+  const batchText = batch.map(m => {
+    const who = m.role === 'user' ? '用户：' : 'AI：';
+    return who + stripCodeForSummary(m.content);
+  }).join('\n\n');
+
+  summaryBusy = true;
+  lastSummaryTry = Date.now();
+  let ok = false;
+  try{
+    let sig;
+    try{ sig = AbortSignal.timeout(120000); }catch(e){ sig = undefined; }
+    const resp = await fetch(endpoint(cfg.baseUrl), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.apiKey },
+      body: JSON.stringify({
+        model: cfg.model,
+        messages: [{ role: 'user', content: summaryPromptOf(conv.summary || '', batchText) }],
+        stream: false,
+        temperature: 0.3
+      }),
+      signal: sig
+    });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    const c = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    const text = typeof c === 'string' ? c.trim() : '';
+    if(!text) throw new Error('摘要为空');
+    conv.summary = text;
+    conv.summarized = end;
+    conv.updatedAt = Date.now();
+    try{ await dbPut(conv); }catch(e){}
+    ok = true;
+  }catch(e){
+    console.warn('摘要失败（不影响正常对话）：', e);
+    ok = false;
+  }finally{
+    summaryBusy = false;
+  }
+  return ok;
+}
+
+/* ============ 向量检索（本地稀疏向量 · TF-IDF 余弦） ============ */
+const RAG_TOP_K = 4;
+const RAG_MIN_SCORE = 0.28;
+const RAG_MAX_POOL = 240;
+const RAG_SNIPPET_MAX = 700;
+
+function tokenize(text){
+  const out = [];
+  const s = String(text || '').toLowerCase();
+  const words = s.match(/[a-z0-9_$.]{2,}/g);
+  if(words) for(const w of words) out.push('w:' + w);
+  const cjkSegs = s.match(/[\u4e00-\u9fa5]+/g) || [];
+  for(const seg of cjkSegs){
+    if(seg.length === 1){ out.push('c:' + seg); continue; }
+    for(let i = 0; i < seg.length - 1; i++) out.push('c:' + seg.slice(i, i + 2));
+  }
+  return out;
+}
+function toVector(text){
+  const tf = new Map();
+  const toks = tokenize(text);
+  for(const t of toks) tf.set(t, (tf.get(t) || 0) + 1);
+  return tf;
+}
+
+function retrieveRelevant(conv, query, topK){
+  if(conv.sealed) return { note: '', hits: 0 };
+  const summarized = conv.summarized || 0;
+  if(!summarized) return { note: '', hits: 0 };
+  const start = Math.max(0, summarized - RAG_MAX_POOL);
+
+  const pool = [];
+  for(let i = start; i < summarized; i++){
+    const m = conv.messages[i];
+    if(!m || !m.content || m.pending || m.error) continue;
+    const text = stripCodeForSummary(m.content);
+    if(text.replace(/\s/g, '').length < 12) continue;
+    pool.push({ m, text });
+  }
+  if(!pool.length) return { note: '', hits: 0 };
+
+  const qVec = toVector(query);
+  if(!qVec.size) return { note: '', hits: 0 };
+
+  const docs = pool.map(p => ({ m: p.m, text: p.text, vec: toVector(p.text) }));
+
+  const df = new Map();
+  for(const d of docs){
+    for(const t of d.vec.keys()) df.set(t, (df.get(t) || 0) + 1);
+  }
+  const N = docs.length;
+  const idfMap = new Map();
+  for(const [t, c] of df) idfMap.set(t, Math.log(1 + (N - c + 0.5) / (c + 0.5)));
+  const idfOf = t => idfMap.get(t) || 0;
+
+  let qNorm = 0;
+  const qW = new Map();
+  for(const [t, f] of qVec){
+    if(!df.has(t)) continue;
+    const w = (1 + Math.log(f)) * idfOf(t);
+    if(!w) continue;
+    qW.set(t, w);
+    qNorm += w * w;
+  }
+  qNorm = Math.sqrt(qNorm);
+  if(!qNorm) return { note: '', hits: 0 };
+
+  const scored = [];
+  for(const d of docs){
+    let dot = 0, dNorm = 0;
+    for(const [t, f] of d.vec){
+      const w = (1 + Math.log(f)) * idfOf(t);
+      dNorm += w * w;
+      const qw = qW.get(t);
+      if(qw) dot += qw * w;
+    }
+    dNorm = Math.sqrt(dNorm);
+    if(!dNorm || !dot) continue;
+    scored.push({ d, score: dot / (qNorm * dNorm) });
+  }
+  if(!scored.length) return { note: '', hits: 0 };
+
+  scored.sort((a, b) => b.score - a.score);
+  const picked = scored.slice(0, topK).filter(x => x.score >= RAG_MIN_SCORE);
+  if(!picked.length) return { note: '', hits: 0 };
+
+  picked.sort((a, b) => conv.messages.indexOf(a.d.m) - conv.messages.indexOf(b.d.m));
+  const note = picked.map(x => {
+    const body = x.d.text;
+    const t = body.length > RAG_SNIPPET_MAX ? body.slice(0, RAG_SNIPPET_MAX) + '…' : body;
+    return (x.d.m.role === 'user' ? '用户：' : 'AI：') + t;
+  }).join('\n\n');
+  return { note, hits: picked.length };
+}
+
+/* ============ 记忆系统 ============ */
+function getMemory(){
+  try{ return JSON.parse(localStorage.getItem('chatMemory') || '[]'); }catch(e){ return []; }
+}
+function saveMemory(mem){
+  localStorage.setItem('chatMemory', JSON.stringify(mem));
+}
+/* 按会话取/存记忆：global 走 localStorage，isolated 走 conv.memory（随会话存 IndexedDB） */
+function getMemoryOf(conv){
+  if(conv && conv.memScope === 'isolated') return Array.isArray(conv.memory) ? conv.memory : [];
+  return getMemory();
+}
+function saveMemoryOf(conv, mem){
+  if(conv && conv.memScope === 'isolated'){
+    conv.memory = mem;
+    try{ dbPut(conv).catch(() => {}); }catch(e){}
+  }else{
+    saveMemory(mem);
+  }
+}
+function renderMemory(){
+  const body = document.getElementById('memBody');
+  if(!body) return;
+  const conv = allConvs[currentId];
+  const mem = getMemoryOf(conv);
+  const isolated = !!(conv && conv.memScope === 'isolated');
+  const scopeBar = conv ? (
+    '<div class="mem-scope">' +
+      '<span>本对话记忆：' + (isolated ? '独立' : '跟全局共用') + '</span>' +
+      '<button type="button" id="memScopeBtn">' + (isolated ? '切回全局' : '改为独立') + '</button>' +
+    '</div>'
+  ) : '';
+  const adder = '<div class="mem-add"><input id="memAddInput" placeholder="手动添加一条记忆..."><button id="memAddBtn">添加</button></div>';
+  const listHtml = mem.length
+    ? mem.map((m, i) => (
+        '<div class="mem-item">' +
+          '<span class="mem-idx">' + (i + 1) + '.</span>' +
+          '<span class="mem-text">' + escapeHtml(m.content) + '</span>' +
+          '<button class="mem-del" data-mi="' + i + '" title="删除">×</button>' +
+        '</div>'
+      )).join('')
+    : '<div style="font-size:12.5px;color:#9ca3af;padding:4px 0;">还没有记忆。AI 会自动记住重要信息，你也可以手动添加。</div>';
+  body.innerHTML = scopeBar + listHtml + adder;
+  body.querySelectorAll('.mem-del').forEach(btn => {
+    btn.onclick = () => {
+      const i = parseInt(btn.dataset.mi, 10);
+      const c = allConvs[currentId];
+      const list = getMemoryOf(c).slice();
+      list.splice(i, 1);
+      saveMemoryOf(c, list);
+      renderMemory();
+    };
+  });
+  const addBtn = document.getElementById('memAddBtn');
+  if(addBtn) addBtn.onclick = addMemoryManual;
+  const scopeBtn = document.getElementById('memScopeBtn');
+  if(scopeBtn) scopeBtn.onclick = () => {
+    const c = allConvs[currentId];
+    if(!c) return;
+    if(c.memScope === 'isolated'){
+      c.memScope = 'global';
+      /* 不碰 c.memory：独立那套数据原样保留，切回来还在 */
+    }else{
+      c.memScope = 'isolated';
+      if(!Array.isArray(c.memory)) c.memory = [];
+    }
+    c.updatedAt = Date.now();
+    try{ dbPut(c).catch(() => {}); }catch(e){}
+    renderMemory();
+  };
+}
+function addMemoryManual(){
+  const inp = document.getElementById('memAddInput');
+  if(!inp) return;
+  const v = inp.value.trim();
+  if(!v) return;
+  const conv = allConvs[currentId];
+  const mem = getMemoryOf(conv).slice();
+  mem.push({ content: v });
+  saveMemoryOf(conv, mem);
+  inp.value = '';
+  renderMemory();
+}
+function processMemoryTags(text, conv){
+  const mem = getMemoryOf(conv).slice();
+  let changed = false;
+  const dels = [];
+  text = text.replace(/\[MEMORY_ADD\]([\s\S]*?)\[\/MEMORY_ADD\]/g, (m, c) => {
+    const v = c.trim();
+    if(v){ mem.push({ content: v }); changed = true; }
+    return '';
+  });
+  text = text.replace(/\[MEMORY_UPDATE\]\s*(\d+)\s*=>\s*([\s\S]*?)\[\/MEMORY_UPDATE\]/g, (m, idx, c) => {
+    const i = parseInt(idx, 10) - 1;
+    const v = c.trim();
+    if(i >= 0 && i < mem.length && v){ mem[i].content = v; changed = true; }
+    return '';
+  });
+  text = text.replace(/\[MEMORY_DELETE\]\s*(\d+)\s*\[\/MEMORY_DELETE\]/g, (m, idx) => {
+    const i = parseInt(idx, 10) - 1;
+    if(i >= 0) dels.push(i);
+    return '';
+  });
+  if(dels.length){
+    const uniq = Array.from(new Set(dels)).sort((a, b) => b - a);
+    for(const i of uniq){
+      if(i < mem.length){ mem.splice(i, 1); changed = true; }
+    }
+  }
+  if(changed){ saveMemoryOf(conv, mem); renderMemory(); }
+  return { text: text.trim(), changed };
+}
+
+/* ============ 配置 ============ */
+function readConfig(){
+  const tRaw = document.getElementById('temperature').value;
+  const t = tRaw === '' ? null : Number(tRaw);
+  const sk = document.getElementById('searchKey');
+  return {
+    baseUrl: document.getElementById('baseUrl').value.trim() || 'https://api.deepseek.com/v1',
+    apiKey: document.getElementById('apiKey').value.trim(),
+    model: document.getElementById('model').value.trim() || 'deepseek-chat',
+    system: document.getElementById('systemPrompt').value.trim(),
+    temperature: (t === null || Number.isNaN(t)) ? null : t,
+    searchKey: sk ? sk.value.trim() : ''
+  };
+}
+function saveConfig(){
+  const cfg = readConfig();
+  const conv = allConvs[currentId];
+  if(conv && conv.sysScope === 'isolated'){
+    conv.system = cfg.system;
+    conv.updatedAt = Date.now();
+    try{ dbPut(conv).catch(() => {}); }catch(e){}
+    let g = {};
+    try{ g = JSON.parse(localStorage.getItem('chatConfig') || '{}'); }catch(e){}
+    g.baseUrl = cfg.baseUrl; g.apiKey = cfg.apiKey; g.model = cfg.model;
+    g.temperature = cfg.temperature; g.searchKey = cfg.searchKey;
+    localStorage.setItem('chatConfig', JSON.stringify(g));
+  }else{
+    localStorage.setItem('chatConfig', JSON.stringify(cfg));
+  }
+  const tip = document.getElementById('saveTip');
+  tip.textContent = '已保存';
+  setTimeout(() => { tip.textContent = ''; }, 1500);
+}
+function updateSysScopeUI(){
+  const conv = allConvs[currentId];
+  const btn = document.getElementById('sysScopeBtn');
+  if(!btn) return;
+  const iso = !!(conv && conv.sysScope === 'isolated');
+  btn.textContent = iso ? '独立' : '全局';
+  btn.classList.toggle('on', iso);
+  btn.title = iso ? '本对话使用独立提示词（点击改为全局）' : '本对话使用全局提示词（点击改为独立）';
+}
+function syncSystemPromptInput(){
+  const conv = allConvs[currentId];
+  const inp = document.getElementById('systemPrompt');
+  if(inp){
+    if(conv && conv.sysScope === 'isolated'){
+      inp.value = conv.system || '';
+    }else{
+      let g = {};
+      try{ g = JSON.parse(localStorage.getItem('chatConfig') || '{}'); }catch(e){}
+      inp.value = (g && g.system) || '';
+    }
+  }
+  updateSysScopeUI();
+}
+function switchSysScope(){
+  const conv = allConvs[currentId];
+  if(!conv) return;
+  const inp = document.getElementById('systemPrompt');
+  if(conv.sysScope === 'isolated'){
+    conv.sysScope = 'global';
+    let g = {};
+    try{ g = JSON.parse(localStorage.getItem('chatConfig') || '{}'); }catch(e){}
+    if(inp) inp.value = (g && g.system) || '';
+  }else{
+    conv.sysScope = 'isolated';
+    if(typeof conv.system !== 'string') conv.system = '';
+    if(inp) inp.value = conv.system;
+  }
+  conv.updatedAt = Date.now();
+  try{ dbPut(conv).catch(() => {}); }catch(e){}
+  updateSysScopeUI();
+}
+function loadConfig(){
+  let cfg = {};
+  try{ cfg = JSON.parse(localStorage.getItem('chatConfig') || '{}') || {}; }catch(e){}
+  if(cfg.baseUrl) document.getElementById('baseUrl').value = cfg.baseUrl;
+  if(cfg.apiKey) document.getElementById('apiKey').value = cfg.apiKey;
+  if(cfg.model) document.getElementById('model').value = cfg.model;
+  if(cfg.system) document.getElementById('systemPrompt').value = cfg.system;
+  if(cfg.searchKey) document.getElementById('searchKey').value = cfg.searchKey;
+  if(cfg.temperature !== undefined && cfg.temperature !== null && cfg.temperature !== ''){
+    document.getElementById('temperature').value = cfg.temperature;
+  }
+}
+function endpoint(base){
+  let b = String(base || '').trim().replace(/\/+$/, '');
+  if(!b) b = 'https://api.deepseek.com/v1';
+  if(/\/chat\/completions$/.test(b)) return b;
+  try{
+    const u = new URL(b);
+    if(u.pathname === '' || u.pathname === '/') b += '/v1';
+  }catch(e){}
+  return b + '/chat/completions';
+}
+function buildSystemPrompt(cfg, searchNote, conv, ragNote){
+  let sys = '[当前时间] ' + new Date().toLocaleString('zh-CN') + '\n\n' + (cfg.system || '');
+  if(conv && conv.summary){
+    sys += '\n\n【前情提要】\n以下是这次对话较早部分的压缩摘要，用它来延续上下文：\n' + conv.summary;
+  }
+  if(ragNote){
+    sys += '\n\n【相关历史片段】\n以下是从这次对话更早的部分（已被摘要压缩掉）里按相关度检索出的原文，可能和当前问题有关，供参考：\n' + ragNote;
+  }
+  if(searchNote){
+    sys += '\n\n' + searchNote + '\n\n以上是刚刚联网搜到的资料。请优先依据这些资料回答，并在引用处用 Markdown 链接标注来源；如果资料与问题无关，可以忽略。';
+  }
+  const mem = getMemoryOf(conv);
+  if(mem.length){
+    sys += '\n\n【记忆库】\n' + mem.map((m, i) => (i + 1) + '. ' + m.content).join('\n');
+  }
+  sys += '\n\n【记忆修改指令】\n你可以在回复的最末尾使用以下格式修改记忆（不要在其他位置使用，一次可以多条）：\n\n'
+    + '[MEMORY_ADD] 新内容 [/MEMORY_ADD]\n'
+    + '[MEMORY_UPDATE] 编号 => 新内容 [/MEMORY_UPDATE]\n'
+    + '[MEMORY_DELETE] 编号 [/MEMORY_DELETE]\n\n'
+    + '想记住一件新事情就用 ADD；已有条目内容要改了用 UPDATE，写上它前面的编号；确实没用了才用 DELETE。\n'
+    + '只记住真正重要、值得长期保留的信息（如用户偏好、身份、关键事实）。不要记录寒暄、临时内容。如果不需要修改记忆，就不要输出这些标签。';
+  return sys;
+}
+
+/* ============ 联网搜索 ============ */
+function searchOn(){ return localStorage.getItem('chatSearchOn') === '1'; }
+function setSearchOn(v){
+  localStorage.setItem('chatSearchOn', v ? '1' : '0');
+  const btn = document.getElementById('searchBtn');
+  if(btn) btn.classList.toggle('on', !!v);
+}
+/* 搜索自带 15 秒超时，同时接上外部的停止信号：
+   点「停止」能立刻中断，超时和手动停止分得开 */
+async function webSearch(query, key, outerSignal){
+  const ctrl = new AbortController();
+  const onAbort = () => { try{ ctrl.abort(); }catch(e){} };
+  let to = 0;
+  if(outerSignal){
+    if(outerSignal.aborted) onAbort();
+    else outerSignal.addEventListener('abort', onAbort);
+  }
+  to = setTimeout(onAbort, 15000);
+  try{
+    const resp = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key: key, query: query, max_results: 5, search_depth: 'basic', include_answer: true }),
+      signal: ctrl.signal
+    });
+    if(!resp.ok){
+      let detail = '';
+      try{ detail = (await resp.text()).slice(0, 160); }catch(e){}
+      throw new Error('HTTP ' + resp.status + (detail ? '：' + detail : ''));
+    }
+    const data = await resp.json();
+    const lines = [];
+    if(data && data.answer) lines.push('摘要：' + data.answer);
+    ((data && data.results) || []).forEach((r, i) => {
+      lines.push('[' + (i + 1) + '] ' + (r.title || '') + '\n' + (r.url || '') + '\n' + String(r.content || '').slice(0, 600));
+    });
+    if(!lines.length) throw new Error('没有搜到结果');
+    return '【联网搜索结果】\n' + lines.join('\n\n');
+  }finally{
+    clearTimeout(to);
+    if(outerSignal) outerSignal.removeEventListener('abort', onAbort);
+  }
+}
+function lastUserText(conv){
+  for(let i = conv.messages.length - 1; i >= 0; i--){
+    const m = conv.messages[i];
+    if(m.role === 'user' && m.content && m.content.trim()) return m.content.trim();
+  }
+  return '';
+}
+
+/* ============ 会话管理 ============ */
+function normalizeMsg(m){
+  return { key: m.key || uid('m'), role: m.role === 'user' ? 'user' : 'assistant', content: typeof m.content === 'string' ? m.content : '', think: typeof m.think === 'string' ? m.think : '' };
+}
+async function newConversation(){
+  const empty = Object.values(allConvs).find(c => !c.messages.length);
+  if(empty){ selectConversation(empty.id); return; }
+  const id = uid('conv');
+  const conv = { id, title: '新对话', messages: [], summary: '', summarized: 0, sealed: false, memScope: 'global', memory: [], sysScope: 'global', system: '', createdAt: Date.now(), updatedAt: Date.now() };
+  allConvs[id] = conv;
+  try{ await dbPut(conv); }catch(e){ console.error(e); }
+  selectConversation(id);
+}
+function selectConversation(id){
+  if(!allConvs[id]) return;
+  currentId = id;
+  closeSidebar();
+  renderSidebar();
+  renderChat(true);
+  updateTitle();
+  renderMemory();
+  syncSystemPromptInput();
+  if(window.matchMedia('(min-width: 761px)').matches) document.getElementById('input').focus();
+}
+async function deleteConversation(id){
+  const conv = allConvs[id];
+  if(!conv) return;
+  if(!confirm('删除「' + conv.title + '」？此操作不可恢复。')) return;
+  if(activeReq && activeReq.convId === id){ try{ activeReq.controller.abort(); }catch(e){} }
+  delete allConvs[id];
+  try{ await dbDelete(id); }catch(e){ console.error(e); }
+  if(currentId === id){
+    const rest = Object.values(allConvs).sort((a, b) => b.updatedAt - a.updatedAt);
+    if(rest.length) selectConversation(rest[0].id);
+    else await newConversation();
+  }else renderSidebar();
+}
+function renameConversation(id){
+  const conv = allConvs[id || currentId];
+  if(!conv) return;
+  const t = prompt('新的对话名称：', conv.title);
+  if(t === null) return;
+  const nt = t.trim();
+  if(!nt) return;
+  conv.title = nt.slice(0, 60);
+  dbPut(conv).catch(e => console.error(e));
+  renderSidebar();
+  updateTitle();
+}
+async function sealConversation(){
+  const conv = allConvs[currentId];
+  if(!conv) return;
+  if(busy){ alert('等这一轮回复结束再点吧'); return; }
+  const cfg = readConfig();
+  if(!cfg.apiKey){
+    document.getElementById('config').open = true;
+    alert('请先在「API 设置」里填 API Key');
+    return;
+  }
+
+  if(conv.sealed){
+    if(!confirm('解除封存？解除后旧原文有可能被重新检索进来。')) return;
+    conv.sealed = false;
+    conv.updatedAt = Date.now();
+    try{ await dbPut(conv); }catch(e){}
+    renderChat(false);
+    updateTitle();
+    return;
+  }
+
+  if(!conv.messages.length){ alert('当前对话还没有内容'); return; }
+  if(!confirm('把目前的消息压成一段摘要，并停止读取它们的原文？\n\n摘要会保留要点和约定，但具体代码和大段原文之后不再送进上下文。')) return;
+
+  const ok = await maybeSummarize(conv, cfg, true);
+  if(!ok){
+    alert('摘要没成功，为了不丢内容，这次没有封存。等会儿可以再试一次。');
+    return;
+  }
+  conv.sealed = true;
+  conv.updatedAt = Date.now();
+  try{ await dbPut(conv); }catch(e){}
+  renderChat(false);
+  renderSidebar();
+  updateTitle();
+}
+function clearConversation(){
+  const conv = allConvs[currentId];
+  if(!conv) return;
+  if(!conv.messages.length) return;
+  if(!confirm('清空当前对话的所有消息？')) return;
+  if(activeReq && activeReq.convId === conv.id){ try{ activeReq.controller.abort(); }catch(e){} }
+  conv.messages = [];
+  conv.title = '新对话';
+  conv.summary = '';
+  conv.summarized = 0;
+  conv.sealed = false;
+  conv.updatedAt = Date.now();
+  dbPut(conv).catch(e => console.error(e));
+  renderChat(true);
+  renderSidebar();
+  updateTitle();
+}
+async function deleteMessage(key){
+  if(busy) return;
+  const conv = allConvs[currentId];
+  if(!conv) return;
+  const idx = conv.messages.findIndex(m => m.key === key);
+  if(idx < 0) return;
+  if(!confirm('删除这条消息？')) return;
+  if(idx < (conv.summarized || 0)){
+    conv.summarized = Math.max(0, conv.summarized - 1);
+    /* 摘要文本里这条的要点还留着，没法逐句剔除，属于已知的小偏差 */
+    console.warn('删掉的消息在已压缩区间内：摘要里可能仍保留它的要点');
+  }
+  conv.messages.splice(idx, 1);
+  conv.updatedAt = Date.now();
+  try{ await dbPut(conv); }catch(e){}
+  renderChat(false);
+  renderSidebar();
+}
+function exportMarkdown(){
+  const conv = allConvs[currentId];
+  if(!conv) return;
+  if(!conv.messages.length){ alert('当前对话还没有内容'); return; }
+  const parts = [];
+  if(conv.summary) parts.push('> 前情提要：' + conv.summary.replace(/\n/g, '\n> ') + '\n');
+  if(conv.sealed) parts.push('> （本次对话已封存，早期原文不再参与上下文）\n');
+  const body = conv.messages.map(m => (m.role === 'user' ? '我：\n' : 'AI：\n') + m.content + '\n').join('\n');
+  const text = '# ' + conv.title + '\n\n' + parts.join('\n') + body;
+  const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (conv.title || 'chat').replace(/[\\/:*?"<>|]/g, '_') + '.md';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+}
+function exportAll(){
+  const data = { version: 2, exportedAt: new Date().toISOString(), conversations: Object.values(allConvs), memory: getMemory() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'chat-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+}
+async function importAll(event){
+  const file = event.target.files[0];
+  event.target.value = '';
+  if(!file) return;
+  try{
+    const data = JSON.parse(await file.text());
+    const convs = Array.isArray(data) ? data : (data.conversations || []);
+    let imported = 0;
+    for(const c of convs){
+      if(!c || !c.id || !Array.isArray(c.messages)) continue;
+      let id = c.id;
+      if(allConvs[id]) id = c.id + '_imp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      const conv = {
+        id, title: c.title || '导入对话',
+        messages: c.messages.map(normalizeMsg),
+        summary: c.summary || '', summarized: c.summarized || 0, sealed: !!c.sealed,
+        memScope: c.memScope === 'isolated' ? 'isolated' : 'global',
+        memory: Array.isArray(c.memory) ? c.memory : [],
+        sysScope: c.sysScope === 'isolated' ? 'isolated' : 'global',
+        system: typeof c.system === 'string' ? c.system : '',
+        createdAt: c.createdAt || Date.now(), updatedAt: c.updatedAt || Date.now()
+      };
+      allConvs[id] = conv;
+      await dbPut(conv);
+      imported++;
+    }
+    if(data.memory && Array.isArray(data.memory)){
+      const mem = getMemory();
+      const seen = new Set(mem.map(m => m.content));
+      data.memory.forEach(m => {
+        if(m && m.content && !seen.has(m.content)){ mem.push({ content: m.content }); seen.add(m.content); }
+      });
+      saveMemory(mem);
+      renderMemory();
+    }
+    renderSidebar();
+    alert(imported ? '导入成功，共 ' + imported + ' 个对话' : '没有可导入的对话');
+  }catch(e){ alert('导入失败：' + e.message); }
+}
+
+/* ============ 渲染 ============ */
+function renderSidebar(){
+  const list = document.getElementById('convList');
+  const arr = Object.values(allConvs).sort((a, b) => b.updatedAt - a.updatedAt);
+  list.innerHTML = arr.map(c => (
+    '<div class="conv-item ' + (c.id === currentId ? 'active' : '') + '" data-id="' + escapeHtml(c.id) + '">' +
+      '<span class="conv-title">' + (c.sealed ? '📦 ' : '') + escapeHtml(c.title) + '</span>' +
+      '<button class="conv-del" data-del="' + escapeHtml(c.id) + '" title="删除">×</button>' +
+    '</div>'
+  )).join('');
+}
+function updateTitle(){
+  const conv = allConvs[currentId];
+  const title = conv ? conv.title : '';
+  document.getElementById('chatTitle').textContent = title || '新对话';
+  document.title = (title || '新对话') + ' · AI 聊天';
+  const sb = document.getElementById('sealBtn');
+  if(sb){
+    const sealed = !!(conv && conv.sealed);
+    sb.title = sealed ? '已封存（点击解除）' : '压缩并封存（之后不再读取早期原文）';
+    sb.textContent = sealed ? '🔓' : '📦';
+  }
+}
+function renderChat(forceScroll){
+  const chat = document.getElementById('chat');
+  const conv = allConvs[currentId];
+  const prevScrollTop = chat.scrollTop;
+  const wasAtBottom = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 140;
+  chat.innerHTML = '';
+  if(!conv) return;
+  if(!conv.messages.length){
+    const d = document.createElement('div');
+    d.className = 'empty';
+    d.textContent = '还没有消息，输入内容开始对话吧';
+    chat.appendChild(d);
+    if(forceScroll || wasAtBottom) scrollToBottom(true);
+    updateToBottomBtn();
+    return;
+  }
+  if((conv.summarized || 0) > 0 && conv.summary){
+    const bar = document.createElement('div');
+    bar.className = 'summary-bar';
+    const sealTag = conv.sealed ? ' · 已封存，不再读取原文' : '';
+    bar.innerHTML = '<span>📝 更早的 ' + conv.summarized + ' 条消息已压缩为摘要' + sealTag + '</span>'
+      + '<button type="button" class="summary-toggle">查看</button>'
+      + '<div class="summary-text" hidden>' + escapeHtml(conv.summary) + '</div>';
+    bar.querySelector('.summary-toggle').onclick = ev => {
+      const t = bar.querySelector('.summary-text');
+      t.hidden = !t.hidden;
+      ev.target.textContent = t.hidden ? '查看' : '收起';
+    };
+    chat.appendChild(bar);
+  }
+  const lastMsg = conv.messages[conv.messages.length - 1];
+  const lastIsAi = lastMsg && lastMsg.role === 'assistant';
+  const frag = document.createDocumentFragment();
+  conv.messages.forEach(m => frag.appendChild(createMsgEl(m, lastIsAi && m === lastMsg)));
+  chat.appendChild(frag);
+  if(forceScroll || wasAtBottom) scrollToBottom(true);
+  else chat.scrollTop = prevScrollTop;
+  updateToBottomBtn();
+}
+
+/* 思考块单独一个容器：只在没有的时候建，之后只往里面写文字，
+   不重建节点，所以用户点「收起」之后不会被下一次刷新弹开 */
+function attachThinkBlock(bubble, think, open){
+  let tb = bubble.querySelector('.think-block');
+  if(!tb){
+    tb = document.createElement('div');
+    tb.className = 'think-block';
+    tb.innerHTML = '<div class="think-head">💭 思考过程<button type="button" class="think-toggle">收起</button></div>'
+      + '<div class="think-body"></div>';
+    bubble.insertBefore(tb, bubble.firstChild);
+    if(!open){
+      tb.querySelector('.think-body').hidden = true;
+      tb.querySelector('.think-toggle').textContent = '展开';
+    }
+  }
+  const body = tb.querySelector('.think-body');
+  if(body.textContent !== think) body.textContent = think;
+  if(!body.hidden) body.scrollTop = body.scrollHeight;
+  return tb;
+}
+function createMsgEl(m, isLastAi){
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ' + (m.role === 'user' ? 'user' : 'ai');
+  if(m.error) wrap.classList.add('error');
+  wrap.dataset.key = m.key;
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  if(m.pending && !m.content && !m.think) bubble.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
+  else if(!m.content && m.notice) bubble.innerHTML = '<span class="notice">' + escapeHtml(m.notice) + '</span>';
+  else if(m.role === 'user') bubble.innerHTML = escapeHtml(m.content).replace(/\n/g, '<br>');
+  else{
+    const mdBody = document.createElement('div');
+    mdBody.className = 'md-body';
+    mdBody.innerHTML = mdToHtml(m.content || '') + (m.pending ? '<span class="caret"></span>' : '');
+    bubble.appendChild(mdBody);
+    if(m.think){
+      const open = (m.thinkOpen !== undefined) ? m.thinkOpen : (!!m.pending || !!isLastAi);
+      attachThinkBlock(bubble, m.think, open);
+    }
+  }
+  wrap.appendChild(bubble);
+  if(m.ragNotice){
+    const rb = document.createElement('div');
+    rb.className = 'rag-bar';
+    rb.textContent = m.ragNotice;
+    wrap.appendChild(rb);
+  }
+  const actions = document.createElement('div');
+  actions.className = 'actions';
+  const copyBtn = document.createElement('button');
+  copyBtn.dataset.act = 'copy'; copyBtn.textContent = '复制';
+  actions.appendChild(copyBtn);
+  if(m.role === 'assistant' && isLastAi && !busy){
+    const reBtn = document.createElement('button');
+    reBtn.dataset.act = 'regen'; reBtn.textContent = '重新生成';
+    actions.appendChild(reBtn);
+  }
+  if(!busy){
+    const delBtn = document.createElement('button');
+    delBtn.dataset.act = 'delete'; delBtn.textContent = '删除';
+    actions.appendChild(delBtn);
+  }
+  wrap.appendChild(actions);
+  return wrap;
+}
+function updateStreamBubble(key, text, think){
+  const chat = document.getElementById('chat');
+  if(!chat) return;
+  const el = chat.querySelector('.msg[data-key="' + key + '"] .bubble');
+  if(!el) return;
+  let mdBody = el.querySelector('.md-body');
+  if(!mdBody){
+    /* 原来这里可能只有三个点的等待动画，换成正文容器 */
+    el.innerHTML = '';
+    mdBody = document.createElement('div');
+    mdBody.className = 'md-body';
+    el.appendChild(mdBody);
+  }
+  if(think) attachThinkBlock(el, think, true);
+  if(mdBody.__last !== text){
+    mdBody.__last = text;
+    mdBody.innerHTML = mdToHtml(text) + '<span class="caret"></span>';
+  }
+  scrollToBottom(false);
+}
+/* 让「已检索到 N 条片段」在流式输出期间就能看见 */
+function setRagNotice(key, text){
+  const chat = document.getElementById('chat');
+  if(!chat) return;
+  const msgEl = chat.querySelector('.msg[data-key="' + key + '"]');
+  if(!msgEl) return;
+  let rb = msgEl.querySelector('.rag-bar');
+  if(!text){ if(rb) rb.remove(); return; }
+  if(!rb){
+    rb = document.createElement('div');
+    rb.className = 'rag-bar';
+    const act = msgEl.querySelector('.actions');
+    if(act) msgEl.insertBefore(rb, act); else msgEl.appendChild(rb);
+  }
+  rb.textContent = text;
+}
+function scrollToBottom(force){
+  const chat = document.getElementById('chat');
+  if(!chat) return;
+  const distance = chat.scrollHeight - chat.scrollTop - chat.clientHeight;
+  if(force || distance < 140){
+    chat.scrollTop = chat.scrollHeight;
+    const btn = document.getElementById('toBottom');
+    if(btn) btn.hidden = true;
+  }
+}
+function updateToBottomBtn(){
+  const chat = document.getElementById('chat');
+  const btn = document.getElementById('toBottom');
+  if(!chat || !btn) return;
+  btn.hidden = (chat.scrollHeight - chat.scrollTop - chat.clientHeight) < 160;
+}
+function setBusy(v){
+  busy = v;
+  const sendBtn = document.getElementById('sendBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  sendBtn.disabled = v;
+  sendBtn.textContent = v ? '生成中…' : '发送';
+  stopBtn.hidden = !v;
+}
+
+/* ============ 发送 / 流式 ============ */
+function autoResize(){
+  const el = document.getElementById('input');
+  if(!el) return;
+  el.style.height = '0px';
+  el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+}
+async function send(){
+  if(busy) return;
+  const conv = allConvs[currentId];
+  if(!conv) return;
+  const input = document.getElementById('input');
+  const text = input.value.trim();
+  if(!text) return;
+  const cfg = readConfig();
+  if(!cfg.apiKey){
+    document.getElementById('config').open = true;
+    document.getElementById('apiKey').focus();
+    alert('请先在「API 设置」里填写 API Key');
+    return;
+  }
+  input.value = '';
+  autoResize();
+  conv.messages.push({ key: uid('m'), role: 'user', content: text });
+  if(!conv.title || conv.title === '新对话') conv.title = text.replace(/\s+/g, ' ').slice(0, 24) || '新对话';
+  conv.updatedAt = Date.now();
+  try{ await dbPut(conv); }catch(e){ console.error(e); }
+  if(currentId === conv.id){ renderChat(true); renderSidebar(); updateTitle(); }
+  else renderSidebar();
+  await runCompletion(conv);
+}
+async function runCompletion(conv){
+  const cfg = readConfig();
+  if(!cfg.apiKey){
+    document.getElementById('config').open = true;
+    document.getElementById('apiKey').focus();
+    alert('请先在「API 设置」里填写 API Key');
+    return;
+  }
+  const useSearch = searchOn();
+  if(useSearch && !cfg.searchKey){
+    document.getElementById('config').open = true;
+    document.getElementById('searchKey').focus();
+    alert('已开启联网（🌐 亮着），但还没填「搜索 Key」。填上再试，或点 🌐 关闭联网。');
+    return;
+  }
+  const placeholder = { key: uid('m'), role: 'assistant', content: '', think: '', pending: true };
+  conv.messages.push(placeholder);
+  conv.updatedAt = Date.now();
+  const controller = new AbortController();
+  activeReq = { convId: conv.id, key: placeholder.key, controller: controller, manualStop: false };
+  setBusy(true);
+  if(currentId === conv.id) renderChat(true);
+  renderSidebar();
+  maybeSummarize(conv, cfg).catch(() => {});
+
+  /* 空闲超时：只要还在持续收到数据就一直续命，60 秒完全没动静才中止。
+     既不会卡死，也不会把慢慢吐字的长回答掐掉。 */
+  let idleTimer = 0;
+  const armIdle = () => {
+    if(idleTimer) clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => { try{ controller.abort(); }catch(e){} }, 60000);
+  };
+  const clearIdle = () => { if(idleTimer){ clearTimeout(idleTimer); idleTimer = 0; } };
+
+  let acc = '';
+  let accThink = '';
+  let timer = 0;
+  const paint = () => {
+    timer = 0;
+    placeholder.content = acc;
+    placeholder.think = accThink;
+    if(currentId === conv.id) updateStreamBubble(placeholder.key, acc, accThink);
+  };
+  const schedule = () => { if(timer) return; timer = setTimeout(paint, 100); };
+  try{
+    let searchNote = '';
+    if(useSearch){
+      const q = lastUserText(conv);
+      if(q){
+        placeholder.content = '🔍 正在搜索网络…';
+        if(currentId === conv.id) updateStreamBubble(placeholder.key, placeholder.content, accThink);
+        try{
+          searchNote = await webSearch(q, cfg.searchKey, controller.signal);
+        }catch(se){
+          if(se && se.name === 'AbortError'){
+            /* 用户点了停止 → 直接往上抛，走统一的停止处理 */
+            if(controller.signal.aborted) throw se;
+            const e = new Error('搜索超时（15 秒）');
+            e.searchFail = true;
+            throw e;
+          }
+          const e = new Error((se && se.message) || String(se));
+          e.searchFail = true;
+          throw e;
+        }
+        placeholder.content = '';
+        if(currentId === conv.id) updateStreamBubble(placeholder.key, '', accThink);
+      }
+    }
+    let ragNote = '';
+    let ragHits = 0;
+    try{
+      const q = lastUserText(conv);
+      if(q){
+        const r = retrieveRelevant(conv, q, RAG_TOP_K);
+        ragNote = r.note;
+        ragHits = r.hits;
+      }
+    }catch(e){ console.warn('检索失败（忽略）：', e); }
+    placeholder.ragNotice = ragHits ? ('🔎 已从早期对话检索到 ' + ragHits + ' 条相关片段') : '';
+    if(placeholder.ragNotice && currentId === conv.id) setRagNotice(placeholder.key, placeholder.ragNotice);
+
+    const history = conv.messages
+      .slice(conv.summarized || 0)
+      .filter(m => m !== placeholder && !m.pending && !m.error && m.content && m.content.trim())
+      .map(m => ({ role: m.role, content: m.content }));
+    const sys = buildSystemPrompt(cfg, searchNote, conv, ragNote);
+    const messages = sys ? [{ role: 'system', content: sys }, ...history] : history;
+    const payload = { model: cfg.model, messages, stream: true };
+    if(cfg.temperature !== null) payload.temperature = cfg.temperature;
+    armIdle();
+    const resp = await fetch(endpoint(cfg.baseUrl), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.apiKey },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    if(!resp.ok){
+      let detail = '';
+      try{ detail = (await resp.text()).slice(0, 300); }catch(e){}
+      throw new Error('HTTP ' + resp.status + (detail ? '：' + detail : ''));
+    }
+    const ctype = (resp.headers.get('content-type') || '').toLowerCase();
+    if(!resp.body || ctype.includes('application/json')){
+      const data = await resp.json();
+      const msg0 = data && data.choices && data.choices[0] && data.choices[0].message;
+      const c = msg0 && msg0.content;
+      acc = typeof c === 'string' ? c : (c ? JSON.stringify(c) : '');
+      accThink = (msg0 && typeof msg0.reasoning_content === 'string') ? msg0.reasoning_content : '';
+      paint();
+    }else{
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buf = '', finished = false;
+      const handleLine = (line) => {
+        const t = String(line || '').trim();
+        if(!t || t.charAt(0) === ':') return;
+        if(t.indexOf('data:') !== 0) return;
+        const chunk = t.slice(5).trim();
+        if(!chunk) return;
+        if(chunk === '[DONE]'){ finished = true; return; }
+        let json;
+        try{ json = JSON.parse(chunk); }catch(e){ return; }
+        const delta = json && json.choices && json.choices[0] && json.choices[0].delta;
+        if(delta && typeof delta.reasoning_content === 'string' && delta.reasoning_content){ accThink += delta.reasoning_content; schedule(); }
+        if(delta && typeof delta.content === 'string' && delta.content){ acc += delta.content; schedule(); }
+      };
+      while(!finished){
+        const r = await reader.read();
+        armIdle();
+        if(r.done) break;
+        buf += decoder.decode(r.value, { stream: true });
+        let nl;
+        while((nl = buf.indexOf('\n')) >= 0){
+          const raw = buf.slice(0, nl);
+          buf = buf.slice(nl + 1);
+          handleLine(raw);
+          if(finished) break;
+        }
+      }
+      buf += decoder.decode();
+      if(!finished && buf.trim()) handleLine(buf);
+      paint();
+    }
+    placeholder.content = acc;
+    if(!acc.trim()){ placeholder.error = true; placeholder.content = '⚠️ 模型返回了空内容，请重试。'; }
+  }catch(err){
+    if(err && err.searchFail){
+      placeholder.error = true;
+      placeholder.content = '⚠️ 联网搜索失败：' + err.message + '\n\n可点输入框左侧的 🌐 关闭联网后重试。';
+    }else if(err && err.name === 'AbortError'){
+      const manual = !!(activeReq && activeReq.manualStop);
+      if(acc){
+        placeholder.content = acc;
+      }else if(manual){
+        placeholder.content = '（已停止生成）';
+      }else{
+        placeholder.error = true;
+        placeholder.content = '⚠️ 请求超时：60 秒没有收到任何数据，请重试。';
+      }
+    }else{
+      placeholder.error = true;
+      placeholder.content = acc ? acc : ('⚠️ 请求失败：' + ((err && err.message) || err));
+    }
+  }finally{
+    clearIdle();
+    if(timer){ clearTimeout(timer); timer = 0; }
+    placeholder.think = accThink;
+    placeholder.pending = false;
+    const r = processMemoryTags(placeholder.content, conv);
+    placeholder.content = r.text;
+    if(!placeholder.content && r.changed) placeholder.notice = '✅ 已更新记忆';
+    const alive = !!allConvs[conv.id];
+    if(alive){ conv.updatedAt = Date.now(); try{ await dbPut(conv); }catch(e){ console.error(e); } }
+    activeReq = null;
+    setBusy(false);
+    renderSidebar();
+    if(alive && currentId === conv.id) renderChat(false);
+  }
+}
+function stopGeneration(){
+  if(activeReq){
+    activeReq.manualStop = true;
+    try{ activeReq.controller.abort(); }catch(e){}
+  }
+}
+async function regenerate(){
+  if(busy) return;
+  const conv = allConvs[currentId];
+  if(!conv) return;
+  const last = conv.messages[conv.messages.length - 1];
+  if(!last || last.role !== 'assistant') return;
+  const lastIdx = conv.messages.length - 1;
+  if(lastIdx < (conv.summarized || 0)) conv.summarized = Math.max(0, conv.summarized - 1);
+  conv.messages.pop();
+  conv.updatedAt = Date.now();
+  try{ await dbPut(conv); }catch(e){}
+  renderChat(true);
+  await runCompletion(conv);
+}
+
+/* ============ 事件 ============ */
+function openSidebar(){ document.getElementById('sidebar').classList.add('open'); document.getElementById('scrim').classList.add('show'); }
+function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('scrim').classList.remove('show'); }
+function onChatClick(e){
+  const codeBtn = e.target.closest('button.code-copy');
+  if(codeBtn){
+    const block = codeBtn.closest('.code-block');
+    const codeEl = block ? block.querySelector('code') : null;
+    copyText(codeEl ? codeEl.textContent : '').then(() => {
+      codeBtn.textContent = '已复制';
+      setTimeout(() => { codeBtn.textContent = '复制'; }, 1200);
+    }).catch(() => alert('复制失败，请手动选中文字复制'));
+    return;
+  }
+  const thBtn = e.target.closest('button.think-toggle');
+  if(thBtn){
+    const tb = thBtn.closest('.think-block');
+    const body = tb ? tb.querySelector('.think-body') : null;
+    if(body){
+      body.hidden = !body.hidden;
+      thBtn.textContent = body.hidden ? '展开' : '收起';
+      if(!body.hidden) body.scrollTop = body.scrollHeight;
+      const msgEl = thBtn.closest('.msg');
+      const conv2 = allConvs[currentId];
+      if(msgEl && conv2){
+        const mm = conv2.messages.find(x => x.key === msgEl.dataset.key);
+        if(mm) mm.thinkOpen = !body.hidden;
+      }
+    }
+    return;
+  }
+  const btn = e.target.closest('button[data-act]');
+  if(!btn) return;
+  const msgEl = btn.closest('.msg');
+  if(!msgEl) return;
+  const conv = allConvs[currentId];
+  if(!conv) return;
+  const msg = conv.messages.find(m => m.key === msgEl.dataset.key);
+  if(!msg) return;
+  if(btn.dataset.act === 'copy'){
+    copyText(msg.content).then(() => {
+      btn.textContent = '已复制';
+      setTimeout(() => { btn.textContent = '复制'; }, 1200);
+    }).catch(() => alert('复制失败，请手动选中文字复制'));
+  }else if(btn.dataset.act === 'regen') regenerate();
+  else if(btn.dataset.act === 'delete') deleteMessage(msg.key);
+}
+function bindEvents(){
+  document.getElementById('newBtn').onclick = () => newConversation();
+  document.getElementById('menuBtn').onclick = openSidebar;
+  document.getElementById('scrim').onclick = closeSidebar;
+  document.getElementById('saveCfgBtn').onclick = saveConfig;
+  document.getElementById('sysScopeBtn').onclick = switchSysScope;
+  document.getElementById('sendBtn').onclick = send;
+  document.getElementById('stopBtn').onclick = stopGeneration;
+  document.getElementById('renameBtn').onclick = () => renameConversation(currentId);
+  document.getElementById('sealBtn').onclick = sealConversation;
+  document.getElementById('clearBtn').onclick = clearConversation;
+  document.getElementById('exportBtn').onclick = exportMarkdown;
+  document.getElementById('exportAllBtn').onclick = exportAll;
+  document.getElementById('importBtn').onclick = () => document.getElementById('importFile').click();
+  document.getElementById('importFile').onchange = importAll;
+  document.getElementById('toBottom').onclick = () => scrollToBottom(true);
+  const sBtn = document.getElementById('searchBtn');
+  sBtn.classList.toggle('on', searchOn());
+  sBtn.onclick = () => {
+    const next = !searchOn();
+    setSearchOn(next);
+    if(next && !readConfig().searchKey){
+      document.getElementById('config').open = true;
+      document.getElementById('searchKey').focus();
+    }
+  };
+  const list = document.getElementById('convList');
+  list.addEventListener('click', e => {
+    const del = e.target.closest('[data-del]');
+    if(del){ e.stopPropagation(); deleteConversation(del.dataset.del); return; }
+    const item = e.target.closest('.conv-item');
+    if(item) selectConversation(item.dataset.id);
+  });
+  list.addEventListener('dblclick', e => {
+    const item = e.target.closest('.conv-item');
+    if(item) renameConversation(item.dataset.id);
+  });
+  const chat = document.getElementById('chat');
+  chat.addEventListener('click', onChatClick);
+  chat.addEventListener('scroll', updateToBottomBtn);
+  const input = document.getElementById('input');
+  input.addEventListener('input', autoResize);
+  input.addEventListener('keydown', e => {
+    if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); send(); }
+  });
+  window.addEventListener('resize', () => { autoResize(); updateToBottomBtn(); });
+}
+async function boot(){
+  loadConfig();
+  bindEvents();
+  autoResize();
+  renderMemory();
+  try{
+    db = await openDB();
+    const arr = await dbGetAll();
+    arr.forEach(c => {
+      allConvs[c.id] = {
+        id: c.id, title: c.title || '新对话',
+        messages: Array.isArray(c.messages) ? c.messages.map(normalizeMsg) : [],
+        summary: c.summary || '', summarized: c.summarized || 0, sealed: !!c.sealed,
+        memScope: c.memScope === 'isolated' ? 'isolated' : 'global',
+        memory: Array.isArray(c.memory) ? c.memory : [],
+        sysScope: c.sysScope === 'isolated' ? 'isolated' : 'global',
+        system: typeof c.system === 'string' ? c.system : '',
+        createdAt: c.createdAt || Date.now(), updatedAt: c.updatedAt || Date.now()
+      };
+    });
+    if(!Object.keys(allConvs).length) await newConversation();
+    else {
+      const first = Object.values(allConvs).sort((a, b) => b.updatedAt - a.updatedAt)[0];
+      selectConversation(first.id);
+    }
+  }catch(err){
+    console.error(err);
+    alert('初始化失败：' + (err && err.message ? err.message : err));
+  }
+}
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+else boot();
+
+/* ====== 新增：附加本地文本文件（独立模块，不改动原有逻辑） ====== */
+(function(){
+  const MAX_FILE_CHARS  = 40000;   // 单个文件最多读取的字符数
+  const MAX_TOTAL_CHARS = 80000;   // 一次最多附加的总字符数
+  const BT = String.fromCharCode(96);
+
+  const LANG_MAP = {
+    js:'javascript', mjs:'javascript', cjs:'javascript', ts:'typescript', tsx:'tsx', jsx:'jsx',
+    py:'python', md:'markdown', markdown:'markdown', html:'html', htm:'html', css:'css',
+    json:'json', xml:'xml', yml:'yaml', yaml:'yaml', sql:'sql', sh:'bash', bat:'bat',
+    ps1:'powershell', java:'java', c:'c', h:'c', cpp:'cpp', hpp:'cpp', cc:'cpp', cs:'csharp',
+    go:'go', rs:'rust', rb:'ruby', php:'php', csv:'csv', tsv:'tsv', ini:'ini', toml:'toml',
+    conf:'ini', log:'log', txt:''
+  };
+
+  function langOf(name){
+    const m = String(name || '').toLowerCase().match(/\.([a-z0-9]+)$/);
+    return m ? (LANG_MAP[m[1]] || '') : '';
+  }
+
+  async function readOne(file){
+    if(file.size > 5 * 1024 * 1024) throw new Error('超过 5MB，请先剪小一点');
+    const text = await file.text();
+    if(text.indexOf('\u0000') >= 0) throw new Error('像是二进制文件，读不了');
+    let out = text;
+    let truncated = false;
+    if(out.length > MAX_FILE_CHARS){
+      out = out.slice(0, MAX_FILE_CHARS);
+      truncated = true;
+    }
+    return { text: out, truncated: truncated };
+  }
+
+  async function handleFiles(files){
+    if(!files || !files.length) return;
+    const input = document.getElementById('input');
+    if(!input) return;
+
+    const chunks = [];
+    const skipped = [];
+    let total = 0;
+
+    for(const f of files){
+      try{
+        const r = await readOne(f);
+        if(total + r.text.length > MAX_TOTAL_CHARS){
+          skipped.push(f.name + '（超出单次总量上限）');
+          continue;
+        }
+        total += r.text.length;
+
+        const body = r.text.replace(/\n+$/, '');
+        const fence = body.indexOf(BT + BT + BT) >= 0 ? (BT + BT + BT + BT) : (BT + BT + BT);
+        let block = '【文件：' + f.name + '】\n' + fence + langOf(f.name) + '\n' + body + '\n' + fence;
+        if(r.truncated) block += '\n（文件较长，只取前 ' + MAX_FILE_CHARS + ' 个字符）';
+        chunks.push(block);
+      }catch(e){
+        skipped.push(f.name + '（' + ((e && e.message) || e) + '）');
+      }
+    }
+
+    if(!chunks.length){
+      alert('没能读取任何文件：\n' + skipped.join('\n'));
+      return;
+    }
+
+    const cur = input.value;
+    const sep = cur ? (/\n$/.test(cur) ? '\n' : '\n\n') : '';
+    input.value = cur + sep + chunks.join('\n\n')
+      + (skipped.length ? '\n\n（以下文件未加入：' + skipped.join('；') + '）' : '');
+
+    try{ input.dispatchEvent(new Event('input', { bubbles: true })); }catch(e){}
+    try{ input.focus(); input.setSelectionRange(input.value.length, input.value.length); }catch(e){}
+  }
+
+  function ensureUI(){
+    const bottom = document.getElementById('bottom');
+    if(!bottom || document.getElementById('fileBtn')) return;
+
+    const btn = document.createElement('button');
+    btn.id = 'fileBtn';
+    btn.type = 'button';
+    btn.textContent = '📎';
+    btn.title = '附加本地文本文件（内容插入输入框）';
+    btn.style.cssText = 'flex:0 0 auto;width:40px;height:40px;border-radius:10px;'
+      + 'border:1px solid var(--border);background:#fff;font-size:16px;line-height:1;';
+    btn.onmouseenter = function(){ btn.style.background = '#f3f4f6'; };
+    btn.onmouseleave = function(){ btn.style.background = '#fff'; };
+
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.id = 'fileInput';
+    inp.hidden = true;
+    inp.multiple = true;
+    inp.accept = '.txt,.md,.markdown,.json,.csv,.tsv,.log,.js,.mjs,.cjs,.ts,.jsx,.tsx,.py,'
+      + '.html,.htm,.css,.xml,.yml,.yaml,.ini,.toml,.conf,.java,.c,.h,.cpp,.hpp,.cs,'
+      + '.go,.rs,.rb,.php,.sql,.sh,.bat,.ps1,text/*';
+    inp.onchange = function(){
+      const files = Array.from(inp.files || []);
+      inp.value = '';
+      handleFiles(files);
+    };
+
+    btn.onclick = function(){ inp.click(); };
+
+    bottom.insertBefore(btn, bottom.firstChild);
+    bottom.appendChild(inp);
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ensureUI);
+  else ensureUI();
+})();
+</script>
+</body>
+</html>
