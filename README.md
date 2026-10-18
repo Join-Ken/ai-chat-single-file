@@ -42,7 +42,16 @@
 - Base URL: `https://api.deepseek.com/v1`
 - 模型: `deepseek-chat`
 
-任何 OpenAI 相容的 API 都可以用（OpenAI、Moonshot、智譜、本地 Ollama 等）。
+## ⚠️ 相容性說明（重要）
+
+本工具是**純前端**實作，請求直接從瀏覽器發出，因此**受 CORS 策略限制**。
+
+- ✅ **已實測可用**：DeepSeek
+- ❌ **無法直接連線**：OpenAI 官方 API（`api.openai.com` 不允許瀏覽器直連）
+- ❓ **理論上可用、未逐一驗證**：其他開放 CORS 的 OpenAI 相容服務，例如 OpenRouter、SiliconFlow、Kimi（`api.moonshot.cn`）等
+- ❓ **本地模型**：Ollama 等需自行設定 `OLLAMA_ORIGINS` 允許跨域，否則同樣會被瀏覽器攔截
+
+填 API Key 前，請先確認你用的服務是否允許瀏覽器直連。若連不上，通常是 CORS 問題，不是 Key 填錯。
 
 ## ⚠️ 安全提醒
 
