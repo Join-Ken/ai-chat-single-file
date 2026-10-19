@@ -1490,7 +1490,7 @@ function endpoint(base){
   return b + '/chat/completions';
 }
 function buildSystemPrompt(cfg, searchNote, conv, ragNote, loreHits){
-  let sys = '[当前时间] ' + new Date().toLocaleString('zh-CN') + '\n\n' + (cfg.system || '');
+  let sys = (cfg.system || '');
   const rpgOn = getRpgOn(conv);
   const rpgPrompt = getRpgPrompt(conv);
   if(rpgOn && rpgPrompt){
@@ -1555,6 +1555,7 @@ function buildSystemPrompt(cfg, searchNote, conv, ragNote, loreHits){
   }else{
     sys += '\n\n【当前模式】普通聊天模式（RPG 已关闭）。不要输出 [STATE]、[LORE_ADD]、[LORE_UPDATE]、[LORE_DELETE] 这类标签；它们不会被处理，只会当普通文字显示出来。';
   }
+  sys += '\n\n[当前时间] ' + new Date().toLocaleString('zh-CN');
   return sys;
 }
 
