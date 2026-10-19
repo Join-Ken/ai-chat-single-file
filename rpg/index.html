@@ -76,7 +76,6 @@
   .mem-scope{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;color:#92700c;background:#fef8e7;border:1px solid #f0e6c8;border-radius:6px;padding:5px 8px;margin:2px 0 4px;}
   .mem-scope button{padding:3px 10px;border-radius:6px;border:1px solid #d8dbe0;background:#fff;font-size:12px;color:#374151;}
   .mem-scope button:hover{background:#f3f4f6;}
-  /* RPG 面板：始终可见，是开关 + RPG 专属功能的控制台 */
   #rpgPanel{border-bottom:1px solid var(--border);background:#f7f5ff;padding:0 10px;}
   #rpgPanel summary{cursor:pointer;padding:6px 0;font-size:12.5px;color:#6b4ea2;list-style:none;font-weight:600;}
   #rpgPanel summary::-webkit-details-marker{display:none;}
@@ -103,7 +102,6 @@
   .scene-k{font-size:10.5px;color:#6b4ea2;background:#f0eaff;padding:1px 5px;border-radius:3px;flex:0 0 auto;}
   .scene-v{word-break:break-word;}
   .scene-empty{color:#9ca3af;font-size:12px;}
-  /* 设定库 */
   .lore-body{display:grid;gap:5px;}
   .lore-tabs{display:flex;gap:4px;flex-wrap:wrap;margin:2px 0 4px;}
   .lore-tabs button{flex:1;min-width:58px;padding:5px 6px;border:1px solid #c8e6d5;border-radius:6px;background:#fff;font-size:12px;color:#2d6a4f;cursor:pointer;}
@@ -131,13 +129,11 @@
   .lore-cat[data-cat="faction"]{background:#f0e6ff;color:#5b3fa8;}
   .lore-cat[data-cat="other"]{background:#eef0f3;color:#6b7280;}
   .lore-cat:hover{filter:brightness(.95);}
-  /* 状态卡 */
   .state-body{display:grid;gap:4px;}
   .state-item{display:flex;gap:8px;padding:5px 8px;background:#fff;border:1px solid #c8ddff;border-radius:6px;font-size:12.5px;line-height:1.55;}
   .state-k{color:#1e40af;font-weight:600;flex:0 0 auto;min-width:64px;word-break:break-word;}
   .state-v{color:#1f2328;flex:1;word-break:break-word;white-space:pre-wrap;}
   .state-empty{color:#9ca3af;font-size:12.5px;padding:4px 0;}
-  /* RPG 关闭时：本体 + 记忆库保留；RPG 面板仍在，但只留开关/说明/提示词 */
   body.rpg-off #stateMini{display:none !important;}
   body.rpg-off .rpg-subtabs{display:none;}
   body.rpg-off .rpg-subpage[data-rpage="lore"],
@@ -275,7 +271,7 @@
     <div class="rpg-body">
       <div class="rpg-status" id="rpgStatus"></div>
       <div class="rpg-scope-note">
-        受这个开关控制的功能：<b>设定库</b>、<b>状态卡</b>、<b>场景栏</b>、<b>顶栏状态按钮</b>，
+        受这个开关控制的功能：<b>设定库</b>、<b>状态卡</b>、<b>场景栏</b>、<b>顶栏状态按钮</b>、<b>骰子检定</b>，
         以及每轮注入的 RPG 提示词与设定指令。
         关闭后这些会一起停用，模型不再写入设定与状态；<b>记忆库、摘要、检索、联网和普通聊天不受影响</b>。
         重新开启时，之前记录的设定与状态都还在。
@@ -463,7 +459,7 @@ function mdToHtml(src){
     };
     const isRule = ln => /^[ \t]*([-*_])[ \t]*(?:\1[ \t]*){2,}$/.test(ln);
     for(const ln of lines){
-      if(isRule(ln)){ flush(); out.push(ln); continue; }
+      if(isRule(ln)){ flush(); out.push('\u0000' + blocks.length + '\u0000'); blocks.push('<hr>'); continue; }
       const mUl = ln.match(/^[ \t]*[-*+][ \t]+(.*)$/);
       const mOl = mUl ? null : ln.match(/^[ \t]*\d+[.)][ \t]+(.*)$/);
       if(mUl){
@@ -504,7 +500,7 @@ function copyText(t){
   });
 }
 
-/* ============ IndexedDB（★ DLC 隔离：库名带 _RPG，绝不与本体共用） ============ */
+/* ============ IndexedDB（★ DLC 隔离：库名带 _RPG） ============ */
 const DB_NAME = 'ChatAppDB_RPG', DB_VERSION = 1, STORE = 'conversations';
 let db = null;
 const allConvs = {};
@@ -637,6 +633,7 @@ async function maybeSummarize(conv, cfg, force){
     conv.summarized = end;
     conv.updatedAt = Date.now();
     try{ await dbPut(conv); }catch(e){}
+    if(currentId === conv.id) syncSummaryBar(conv);
     ok = true;
   }catch(e){
     console.warn('摘要失败（不影响正常对话）：', e);
@@ -652,6 +649,16 @@ const RAG_TOP_K = 4;
 const RAG_MIN_SCORE = 0.28;
 const RAG_MAX_POOL = 240;
 const RAG_SNIPPET_MAX = 700;
+
+const vecCache = new WeakMap();
+function getMsgVec(m){
+  let c = vecCache.get(m);
+  if(c) return c;
+  const text = stripCodeForSummary(m.content);
+  c = { text: text, vec: toVector(text) };
+  vecCache.set(m, c);
+  return c;
+}
 
 function tokenize(text){
   const out = [];
@@ -682,22 +689,20 @@ function retrieveRelevant(conv, query, topK){
   for(let i = start; i < summarized; i++){
     const m = conv.messages[i];
     if(!m || !m.content || m.pending || m.error) continue;
-    const text = stripCodeForSummary(m.content);
-    if(text.replace(/\s/g, '').length < 12) continue;
-    pool.push({ m, text });
+    const c = getMsgVec(m);
+    if(c.text.replace(/\s/g, '').length < 12) continue;
+    pool.push({ m: m, text: c.text, vec: c.vec });
   }
   if(!pool.length) return { note: '', hits: 0 };
 
   const qVec = toVector(query);
   if(!qVec.size) return { note: '', hits: 0 };
 
-  const docs = pool.map(p => ({ m: p.m, text: p.text, vec: toVector(p.text) }));
-
   const df = new Map();
-  for(const d of docs){
+  for(const d of pool){
     for(const t of d.vec.keys()) df.set(t, (df.get(t) || 0) + 1);
   }
-  const N = docs.length;
+  const N = pool.length;
   const idfMap = new Map();
   for(const [t, c] of df) idfMap.set(t, Math.log(1 + (N - c + 0.5) / (c + 0.5)));
   const idfOf = t => idfMap.get(t) || 0;
@@ -715,7 +720,7 @@ function retrieveRelevant(conv, query, topK){
   if(!qNorm) return { note: '', hits: 0 };
 
   const scored = [];
-  for(const d of docs){
+  for(const d of pool){
     let dot = 0, dNorm = 0;
     for(const [t, f] of d.vec){
       const w = (1 + Math.log(f)) * idfOf(t);
@@ -725,7 +730,7 @@ function retrieveRelevant(conv, query, topK){
     }
     dNorm = Math.sqrt(dNorm);
     if(!dNorm || !dot) continue;
-    scored.push({ d, score: dot / (qNorm * dNorm) });
+    scored.push({ d: d, score: dot / (qNorm * dNorm) });
   }
   if(!scored.length) return { note: '', hits: 0 };
 
@@ -739,7 +744,7 @@ function retrieveRelevant(conv, query, topK){
     const t = body.length > RAG_SNIPPET_MAX ? body.slice(0, RAG_SNIPPET_MAX) + '…' : body;
     return (x.d.m.role === 'user' ? '用户：' : 'AI：') + t;
   }).join('\n\n');
-  return { note, hits: picked.length };
+  return { note: note, hits: picked.length };
 }
 
 /* ============ 记忆系统（★ DLC 隔离：全局记忆 key 带 _RPG） ============ */
@@ -951,13 +956,22 @@ function setRpg(conv, on, prompt){
   try{ dbPut(conv).catch(() => {}); }catch(e){}
 }
 
+/* RPG 掷骰 DLC：骰子开关 helper。
+   diceOn 缺省为 true（老会话升级后默认开启，符合「加功能不缩水」）；
+   显式 false 时彻底停用掷骰检定。 */
+function getDiceOn(conv){ return !(conv && conv.diceOn === false); }
+function setDiceOn(conv, on){
+  if(!conv) return;
+  conv.diceOn = !!on;
+  conv.updatedAt = Date.now();
+  try{ dbPut(conv).catch(() => {}); }catch(e){}
+}
+
 const DEFAULT_RPG_PROMPT = [
 '【RPG 模式】',
 '你是这场文字冒险的主持人（GM）。遵守以下规则：',
 '1. 每回合只推进一个事件节点，输出后停下等玩家行动，不要一口气推进很多事。',
-'2. 遇到需要随机判定的行动（攻击、潜行、说服、躲避等），由你自己掷骰并写出结果。格式示例：',
-'   掷骰：d20+3=17，对抗 DC15，成功。',
-'   不要跳过判定直接写结果，也不要每次都让玩家成功。',
+'2. 遇到需要随机判定的行动（攻击、潜行、说服、躲避等），按系统指令处理掷骰，不要自己编造点数。',
 '3. 状态变化（血量、物品、地点、好感等）在回复最末尾用下面的标签记录，格式必须严格照抄，否则状态栏不会更新：',
 '   [STATE]{"hp":18,"maxHp":30,"location":"酒馆","present":["掌柜","神秘剑客"],"items":["长剑","药水x2"]}[/STATE]',
 '   只写有变化的字段，没变化的字段不要写。数值用数字，地点用字符串，在场角色 present 用字符串数组。',
@@ -970,7 +984,6 @@ const DEFAULT_RPG_PROMPT = [
 '- 选项用「A. 描述」逐行列出，每个选项不超过 20 字'
 ].join('\n');
 
-/* RPG 页内部子页（提示词 / 设定库 / 状态卡），跨会话保留 */
 const RPG_TAB_KEY = 'chatRpgTab_RPG';
 const RPG_TAB_LIST = ['prompt', 'lore', 'state'];
 
@@ -1061,12 +1074,19 @@ function renderRpgPanel(){
   const saved = getRpgPrompt(conv);
   const effective = saved || DEFAULT_RPG_PROMPT;
   const len = effective.length;
+  const diceOn = getDiceOn(conv);
   st.innerHTML =
     '<span>本对话 RPG 模式：' + (on ? '<span class="on">已开启</span>' : '<span class="off">未开启</span>') + '</span>' +
     '<span class="rpg-cost">提示词约 ' + len + ' 字' + (on ? '，每轮固定开销' : '，开启后每轮固定注入') + '</span>' +
+    (on ? '<button type="button" id="diceToggleBtn"' + (diceOn ? '' : ' style="background:#fff;color:#9ca3af;border-color:#d8dbe0;"') + '>🎲 骰子检定：' + (diceOn ? '开' : '关') + '</button>' : '') +
     '<button type="button" id="rpgToggleInPanel">' + (on ? '关闭 RPG' : '开启 RPG') + '</button>';
   const tb = document.getElementById('rpgToggleInPanel');
   if(tb) tb.onclick = toggleRpg;
+  const diceBtn = document.getElementById('diceToggleBtn');
+  if(diceBtn) diceBtn.onclick = () => {
+    setDiceOn(conv, !getDiceOn(conv));
+    renderRpgPanel();
+  };
   if(document.activeElement !== ta){
     ta.value = effective;
   }
@@ -1077,7 +1097,6 @@ function renderRpgPanel(){
     lbl.style.color = on ? '#0a7a2f' : '#6b4ea2';
     lbl.style.fontWeight = on ? '600' : '400';
   }
-  /* 任何时候都可编辑，避免「关掉后写不了提示词」的死锁 */
   ta.readOnly = false;
   ta.style.background = '#fff';
   const saveBtn = document.getElementById('rpgSaveBtn');
@@ -1157,7 +1176,6 @@ function saveLoreOf(conv, lore){
   try{ dbPut(conv).catch(() => {}); }catch(e){}
 }
 
-/* 设定库当前分页（角色/地点/势力/其他），跨会话保留 */
 let loreTab = 'character';
 
 function renderLore(){
@@ -1166,7 +1184,6 @@ function renderLore(){
   const conv = allConvs[currentId];
   const lore = getLoreOf(conv);
 
-  /* 快照用户正在输入的内容，重渲染后恢复 */
   const valOf = id => { const el = document.getElementById(id); return el ? el.value : ''; };
   const snap = {
     name: valOf('loreName'),
@@ -1362,13 +1379,14 @@ function processLoreTags(text, conv){
   return { text: text.trim(), changed };
 }
 
-/* RPG 关闭时，只剥离标签不应用，防止历史残留显示到气泡里 */
 function stripRpgTags(text){
   let t = String(text || '');
   t = t.replace(/\[STATE\][\s\S]*?\[\/STATE\]/g, '');
   t = t.replace(/\[LORE_ADD\][\s\S]*?\[\/LORE_ADD\]/g, '');
   t = t.replace(/\[LORE_UPDATE\][\s\S]*?\[\/LORE_UPDATE\]/g, '');
   t = t.replace(/\[LORE_DELETE\][\s\S]*?\[\/LORE_DELETE\]/g, '');
+  /* RPG 掷骰 DLC：关闭 RPG 时一并剥离 ROLL */
+  t = t.replace(/\[ROLL\][\s\S]*?\[\/ROLL\]/gi, '');
   return t.trim();
 }
 /* ===== 设定库 END ===== */
@@ -1552,8 +1570,24 @@ function buildSystemPrompt(cfg, searchNote, conv, ragNote, loreHits){
       + '不要记录：临时数值、一次性的路人、剧情走向、寒暄。同一角色不要重复 ADD。\n'
       + '兼容：也接受老格式 [LORE_ADD] 名称 | 关键词 | 内容 [/LORE_ADD]（会被归入「其他」）。\n'
       + '触发规则：玩家发言、当前地点、在场角色或近期对话出现关键词时，该条设定会自动注入上下文。';
+
+    /* RPG 掷骰 DLC：检定指令放在最后区域，符合「修改指令压最后」原则。
+       RPG 开启 + diceOn 关 → 明确禁止 ROLL；
+       RPG 开启 + diceOn 开 → 给出 ROLL 格式要求。 */
+    if(getDiceOn(conv)){
+      sys += '\n\n【检定掷骰指令】\n'
+        + '当某个行动结果不确定、且失败有实质后果时，不要自己编骰子，而是停下要求玩家掷骰。\n'
+        + '在回复最末尾单独一行输出（每轮最多一个）：\n'
+        + '[ROLL]d20+3 vs DC15[/ROLL]\n'
+        + '格式：骰子表达式 + 修饰值 [+ vs DC难度]。难度按情形定，通常 8~25。\n'
+        + '输出 ROLL 后，本轮不要再叙述行动结果，等玩家掷骰后系统会把结果交还给你，你再续写。\n'
+        + '普通、无风险、不影响剧情的行动直接叙述，不要用 ROLL。\n'
+        + 'ROLL 必须单独一行，不要和 [STATE]、[LORE_ADD] 混写。';
+    }else{
+      sys += '\n\n【检定掷骰指令】\n本对话未开启骰子检定。不要输出 [ROLL] 标签，也不要编造骰子点数。行动结果由你根据合理性和剧情需要直接叙述。';
+    }
   }else{
-    sys += '\n\n【当前模式】普通聊天模式（RPG 已关闭）。不要输出 [STATE]、[LORE_ADD]、[LORE_UPDATE]、[LORE_DELETE] 这类标签；它们不会被处理，只会当普通文字显示出来。';
+    sys += '\n\n【当前模式】普通聊天模式（RPG 已关闭）。不要输出 [STATE]、[LORE_ADD]、[LORE_UPDATE]、[LORE_DELETE]、[ROLL] 这类标签；它们不会被处理，只会当普通文字显示出来。';
   }
   return sys;
 }
@@ -1609,12 +1643,15 @@ function lastUserText(conv){
 
 /* ============ 会话管理 ============ */
 function normalizeMsg(m){
-  return {
+  const r = {
     key: m.key || uid('m'),
     role: m.role === 'user' ? 'user' : 'assistant',
     content: typeof m.content === 'string' ? m.content : '',
     think: typeof m.think === 'string' ? m.think : ''
   };
+  /* RPG 掷骰 DLC：保留 rollRequest，重新打开会话或导入时不丢检定按钮 */
+  if(m.rollRequest && typeof m.rollRequest === 'object') r.rollRequest = m.rollRequest;
+  return r;
 }
 async function newConversation(){
   const empty = Object.values(allConvs).find(c => !c.messages.length);
@@ -1624,6 +1661,7 @@ async function newConversation(){
     id, title: '新对话', messages: [], summary: '', summarized: 0, sealed: false,
     memScope: 'global', memory: [], state: {},
     rpgOn: false, rpgPrompt: '',
+    diceOn: true,
     lore: [],
     sysScope: 'global', system: '',
     createdAt: Date.now(), updatedAt: Date.now()
@@ -1789,6 +1827,7 @@ async function importAll(event){
         state: (c.state && typeof c.state === 'object') ? c.state : {},
         rpgOn: getRpgOn(c),
         rpgPrompt: getRpgPrompt(c),
+        diceOn: c.diceOn !== false,
         lore: Array.isArray(c.lore) ? c.lore.map(x => Object.assign({ key: uid('l') }, x)) : [],
         sysScope: c.sysScope === 'isolated' ? 'isolated' : 'global',
         system: typeof c.system === 'string' ? c.system : '',
@@ -1850,20 +1889,7 @@ function renderChat(forceScroll){
     updateToBottomBtn();
     return;
   }
-  if((conv.summarized || 0) > 0 && conv.summary){
-    const bar = document.createElement('div');
-    bar.className = 'summary-bar';
-    const sealTag = conv.sealed ? ' · 已封存，不再读取原文' : '';
-    bar.innerHTML = '<span>📝 更早的 ' + conv.summarized + ' 条消息已压缩为摘要' + sealTag + '</span>'
-      + '<button type="button" class="summary-toggle">查看</button>'
-      + '<div class="summary-text" hidden>' + escapeHtml(conv.summary) + '</div>';
-    bar.querySelector('.summary-toggle').onclick = ev => {
-      const t = bar.querySelector('.summary-text');
-      t.hidden = !t.hidden;
-      ev.target.textContent = t.hidden ? '查看' : '收起';
-    };
-    chat.appendChild(bar);
-  }
+  syncSummaryBar(conv);
   const lastMsg = conv.messages[conv.messages.length - 1];
   const lastIsAi = lastMsg && lastMsg.role === 'assistant';
   const frag = document.createDocumentFragment();
@@ -1871,6 +1897,51 @@ function renderChat(forceScroll){
   chat.appendChild(frag);
   if(forceScroll || wasAtBottom) scrollToBottom(true);
   else chat.scrollTop = prevScrollTop;
+  updateToBottomBtn();
+}
+
+function syncSummaryBar(conv){
+  const chat = document.getElementById('chat');
+  if(!chat || !conv) return;
+  const shouldShow = (conv.summarized || 0) > 0 && !!conv.summary;
+  let bar = chat.querySelector('.summary-bar');
+
+  if(!shouldShow){ if(bar) bar.remove(); return; }
+
+  if(!bar){
+    bar = document.createElement('div');
+    bar.className = 'summary-bar';
+    bar.innerHTML = '<span class="sum-count"></span>'
+      + '<button type="button" class="summary-toggle">查看</button>'
+      + '<div class="summary-text" hidden></div>';
+    bar.querySelector('.summary-toggle').onclick = ev => {
+      const t = bar.querySelector('.summary-text');
+      t.hidden = !t.hidden;
+      ev.target.textContent = t.hidden ? '查看' : '收起';
+    };
+    chat.insertBefore(bar, chat.firstChild);
+  }
+
+  const sealTag = conv.sealed ? ' · 已封存，不再读取原文' : '';
+  const newCount = '📝 更早的 ' + conv.summarized + ' 条消息已压缩为摘要' + sealTag;
+  const countEl = bar.querySelector('.sum-count');
+  if(countEl.textContent !== newCount) countEl.textContent = newCount;
+
+  const txt = bar.querySelector('.summary-text');
+  if(txt.textContent !== conv.summary) txt.textContent = conv.summary;
+}
+
+function refreshLastMsgEl(conv){
+  const chat = document.getElementById('chat');
+  if(!chat) return;
+  const last = conv.messages[conv.messages.length - 1];
+  if(!last){ renderChat(false); return; }
+  const old = chat.querySelector('.msg[data-key="' + last.key + '"]');
+  if(!old){ renderChat(false); return; }
+  const wasAtBottom = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 140;
+  const newEl = createMsgEl(last, last.role === 'assistant');
+  old.replaceWith(newEl);
+  if(wasAtBottom) scrollToBottom(true);
   updateToBottomBtn();
 }
 
@@ -1919,6 +1990,25 @@ function createMsgEl(m, isLastAi){
     rb.textContent = m.ragNotice;
     wrap.appendChild(rb);
   }
+  /* RPG 掷骰 DLC：渲染检定按钮/结果 */
+  if(m.role === 'assistant' && m.rollRequest){
+    const conv0 = allConvs[currentId];
+    if(getRpgOn(conv0) && getDiceOn(conv0)){
+      const rb2 = document.createElement('div');
+      rb2.className = 'roll-bar';
+      if(m.rollRequest.done && m.rollRequest.result){
+        rb2.classList.add('roll-done');
+        rb2.textContent = '🎲 ' + m.rollRequest.result;
+      }else{
+        const spec = m.rollRequest;
+        rb2.innerHTML = '<button type="button" class="roll-btn" data-roll="1">🎲 掷 '
+          + escapeHtml(spec.display)
+          + (spec.dc != null ? ' 对抗 DC' + spec.dc : '')
+          + '</button>';
+      }
+      wrap.appendChild(rb2);
+    }
+  }
   const actions = document.createElement('div');
   actions.className = 'actions';
   const copyBtn = document.createElement('button');
@@ -1955,6 +2045,7 @@ function updateStreamBubble(key, text, think){
     mdBody.innerHTML = mdToHtml(text) + '<span class="caret"></span>';
   }
   scrollToBottom(false);
+  updateToBottomBtn();
 }
 function setRagNotice(key, text){
   const chat = document.getElementById('chat');
@@ -2003,6 +2094,14 @@ function autoResize(){
   el.style.height = '0px';
   el.style.height = Math.min(el.scrollHeight, 160) + 'px';
 }
+
+function estimateTokens(s){
+  if(!s) return 0;
+  const cjk = (s.match(/[\u4e00-\u9fa5]/g) || []).length;
+  return Math.ceil(cjk + (s.length - cjk) / 4);
+}
+const TOKEN_WARN_THRESHOLD = 50000;
+
 async function send(){
   if(busy) return;
   const conv = allConvs[currentId];
@@ -2017,17 +2116,38 @@ async function send(){
     alert('请先在「API 设置」里填写 API Key');
     return;
   }
+
+  let est = estimateTokens(text);
+  for(let i = conv.summarized || 0; i < conv.messages.length; i++){
+    est += estimateTokens(conv.messages[i].content || '');
+  }
+  if(est > TOKEN_WARN_THRESHOLD){
+    if(!confirm('当前对话内容较长（估算约 ' + est + ' tokens），可能超出模型上限导致请求失败。\n\n建议：先点 📦 封存压缩，或开新对话。\n\n仍要发送吗？')) return;
+  }
+
   input.value = '';
   autoResize();
-  conv.messages.push({ key: uid('m'), role: 'user', content: text });
+  const userMsg = { key: uid('m'), role: 'user', content: text };
+  conv.messages.push(userMsg);
   if(!conv.title || conv.title === '新对话') conv.title = text.replace(/\s+/g, ' ').slice(0, 24) || '新对话';
   conv.updatedAt = Date.now();
   try{ await dbPut(conv); }catch(e){ console.error(e); }
-  if(currentId === conv.id){ renderChat(true); renderSidebar(); updateTitle(); }
-  else renderSidebar();
+
+  if(currentId === conv.id){
+    const chat = document.getElementById('chat');
+    const empty = chat.querySelector('.empty');
+    if(empty) empty.remove();
+    chat.appendChild(createMsgEl(userMsg, false));
+    scrollToBottom(true);
+    renderSidebar();
+    updateTitle();
+  }else{
+    renderSidebar();
+  }
   await runCompletion(conv);
 }
-async function runCompletion(conv){
+
+async function runCompletion(conv, overrideMessages){
   const cfg = readConfig();
   if(!cfg.apiKey){
     document.getElementById('config').open = true;
@@ -2048,9 +2168,20 @@ async function runCompletion(conv){
   const controller = new AbortController();
   activeReq = { convId: conv.id, key: placeholder.key, controller: controller, manualStop: false };
   setBusy(true);
-  if(currentId === conv.id) renderChat(true);
+  if(currentId === conv.id){
+    const chat = document.getElementById('chat');
+    const empty = chat.querySelector('.empty');
+    if(empty) empty.remove();
+    chat.appendChild(createMsgEl(placeholder, true));
+    scrollToBottom(true);
+  }
   renderSidebar();
   maybeSummarize(conv, cfg).catch(() => {});
+
+  /* RPG 掷骰 DLC：保存本次请求实际发出去的 messages 快照。
+     检定续写（doRoll → runCompletion(conv, msgs)）时复用它，
+     前缀逐字节一致，命中 DeepSeek 的上下文缓存。 */
+  let lastMessages = null;
 
   let idleTimer = 0;
   const armIdle = () => {
@@ -2115,8 +2246,6 @@ async function runCompletion(conv){
       .filter(m => m !== placeholder && !m.pending && !m.error && m.content && m.content.trim())
       .map(m => ({ role: m.role, content: m.content }));
     const sys = buildSystemPrompt(cfg, searchNote, conv, ragNote, loreHits);
-    /* 时间拼到最后一条 user 消息的开头：只改发给 API 的这份副本，
-       不写回 conv.messages。这样 system 整段稳定，前缀才能命中缓存。 */
     const nowStr = new Date().toLocaleString('zh-CN');
     for(let i = history.length - 1; i >= 0; i--){
       if(history[i].role === 'user'){
@@ -2124,7 +2253,12 @@ async function runCompletion(conv){
         break;
       }
     }
-    const messages = sys ? [{ role: 'system', content: sys }, ...history] : history;
+    /* RPG 掷骰 DLC：外部可传入 messages 快照（检定续写场景），
+       否则按常规构造。快照复用是为命中上下文缓存。 */
+    const messages = overrideMessages
+      ? overrideMessages
+      : (sys ? [{ role: 'system', content: sys }, ...history] : history);
+    lastMessages = messages;
     const payload = { model: cfg.model, messages, stream: true };
     if(cfg.temperature !== null) payload.temperature = cfg.temperature;
     armIdle();
@@ -2207,7 +2341,6 @@ async function runCompletion(conv){
     placeholder.think = accThink;
     placeholder.pending = false;
 
-    /* 标签处理：RPG 关闭时只剥离不应用，保证「完全只剩本体」 */
     let finalText = placeholder.content || '';
     let stChanged = false, lrChanged = false;
     if(getRpgOn(conv)){
@@ -2222,8 +2355,31 @@ async function runCompletion(conv){
     }
     const mr = processMemoryTags(finalText, conv);
     finalText = mr.text;
+
+    /* RPG 掷骰 DLC：从最终文本里提取 [ROLL]（仅在 RPG 开启 + 骰子开启时）。
+       提取后从正文里剥掉，不显示给玩家；同时把本次请求的 messages 快照
+       挂到 pendingRollCtx，供 doRoll 复用（命中上下文缓存）。 */
+    let rollReq = null;
+    if(getRpgOn(conv)){
+      if(getDiceOn(conv)){
+        const rm = finalText.match(/\[ROLL\]([\s\S]*?)\[\/ROLL\]/i);
+        if(rm) rollReq = parseRollSpec(rm[1]);
+      }
+      finalText = finalText.replace(/\[ROLL\][\s\S]*?\[\/ROLL\]/gi, '').trim();
+    }
     placeholder.content = finalText;
     if(!finalText && (mr.changed || stChanged || lrChanged)) placeholder.notice = '✅ 已更新状态/记忆/设定';
+    if(rollReq){
+      placeholder.rollRequest = rollReq;
+      if(lastMessages){
+        pendingRollCtx = {
+          convId: conv.id,
+          key: placeholder.key,
+          messages: lastMessages,
+          assistantContent: finalText || '（请掷骰）'
+        };
+      }
+    }
 
     const alive = !!allConvs[conv.id];
     if(alive){ conv.updatedAt = Date.now(); try{ await dbPut(conv); }catch(e){ console.error(e); } }
@@ -2231,7 +2387,8 @@ async function runCompletion(conv){
     setBusy(false);
     renderSidebar();
     if(alive && currentId === conv.id){
-      renderChat(false);
+      refreshLastMsgEl(conv);
+      syncSummaryBar(conv);
       renderSceneBar();
       renderStatePanel();
       updateStateMini();
@@ -2405,6 +2562,7 @@ async function boot(){
         state: (c.state && typeof c.state === 'object') ? c.state : {},
         rpgOn: getRpgOn(c),
         rpgPrompt: getRpgPrompt(c),
+        diceOn: c.diceOn !== false,
         lore: Array.isArray(c.lore) ? c.lore.map(x => Object.assign({ key: x.key || uid('l') }, x)) : [],
         sysScope: c.sysScope === 'isolated' ? 'isolated' : 'global',
         system: typeof c.system === 'string' ? c.system : '',
@@ -2424,6 +2582,113 @@ async function boot(){
 
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
 else boot();
+
+/* ====== 骰子检定 DLC START（独立附加，可整体剥离） ====== */
+/* 说明：
+   - 提供 parseRollSpec / execRollSpec / doRoll 三个顶层函数，
+     runCompletion 里需要调用 parseRollSpec，createMsgEl 里渲染按钮，
+     事件绑定单独 IIFE。
+   - pendingRollCtx 保存「触发检定的那一次请求」实际发出去的 messages 快照。
+     检定续写时复用该快照拼 messages，前缀逐字节一致，命中上下文缓存。
+     pendingRollCtx 是内存变量，刷新页面后失效；此时点旧按钮会提示
+     「检定上下文已丢失」，玩家重发一次行动即可。 */
+
+let pendingRollCtx = null;
+
+function parseRollSpec(raw){
+  const s = String(raw || '').trim();
+  const m = s.match(/^(\d*d\d+)\s*([+-]\s*\d+)?\s*(?:(?:vs\.?|对抗|dc)\s*(\d+))?$/i);
+  if(!m) return null;
+  const expr = m[1].toLowerCase();
+  const modRaw = m[2] ? m[2].replace(/\s+/g, '') : '';
+  const mod = modRaw ? parseInt(modRaw, 10) : 0;
+  const dc = m[3] ? parseInt(m[3], 10) : null;
+  return { expr, mod, dc, display: expr + (mod ? (mod > 0 ? '+' + mod : mod) : '') };
+}
+
+function execRollSpec(spec){
+  const m = spec.expr.match(/^(\d*)d(\d+)$/);
+  const n = Math.max(1, Math.min(20, parseInt(m[1] || '1', 10)));
+  const sides = Math.max(2, Math.min(1000, parseInt(m[2], 10)));
+  const rs = []; let sum = 0;
+  for(let i = 0; i < n; i++){ const r = 1 + Math.floor(Math.random() * sides); rs.push(r); sum += r; }
+  const total = sum + (spec.mod || 0);
+  let text;
+  if(n === 1){
+    text = spec.expr + (spec.mod ? (spec.mod > 0 ? '+' + spec.mod : spec.mod) : '') + ' = ' + total;
+  }else{
+    text = spec.expr + (spec.mod ? (spec.mod > 0 ? '+' + spec.mod : spec.mod) : '')
+      + ' = ' + rs.join('+') + (spec.mod ? (spec.mod > 0 ? '+' + spec.mod : spec.mod) : '')
+      + ' = ' + total;
+  }
+  if(n === 1 && sides === 20){
+    if(rs[0] === 20) text += '（大成功！）';
+    else if(rs[0] === 1) text += '（大失败…）';
+  }
+  if(spec.dc != null) text += '，对抗 DC' + spec.dc + '，' + (total >= spec.dc ? '成功' : '失败');
+  return { text, total };
+}
+
+async function doRoll(msgKey){
+  if(busy) return;
+  const conv = allConvs[currentId];
+  if(!conv) return;
+  if(!getRpgOn(conv) || !getDiceOn(conv)){
+    alert('RPG 或骰子检定未开启');
+    return;
+  }
+  const m = conv.messages.find(x => x.key === msgKey);
+  if(!m || !m.rollRequest || m.rollRequest.done) return;
+  const last = conv.messages[conv.messages.length - 1];
+  if(!last || last.key !== msgKey){
+    alert('这条检定已经过期（后面又有新消息了），请直接把你要的行动写进输入框。');
+    return;
+  }
+  const ctx = pendingRollCtx;
+  if(!ctx || ctx.convId !== conv.id || ctx.key !== msgKey){
+    alert('检定上下文已丢失（可能刷新过页面），请重新行动。');
+    return;
+  }
+  const res = execRollSpec(m.rollRequest);
+  m.rollRequest.done = true;
+  m.rollRequest.result = res.text;
+  const line = '（掷骰：' + res.text + '）';
+  conv.messages.push({ key: uid('m'), role: 'user', content: line });
+  conv.updatedAt = Date.now();
+  try{ await dbPut(conv); }catch(e){}
+  renderChat(false);
+  renderSidebar();
+
+  const msgs = ctx.messages.slice();
+  msgs.push({ role: 'assistant', content: ctx.assistantContent });
+  msgs.push({ role: 'user', content: line });
+  pendingRollCtx = null;
+  await runCompletion(conv, msgs);
+}
+
+(function(){
+  const chat = document.getElementById('chat');
+  if(!chat) return;
+  chat.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-roll]');
+    if(!btn) return;
+    const msgEl = btn.closest('.msg');
+    if(!msgEl) return;
+    doRoll(msgEl.dataset.key);
+  });
+})();
+
+(function(){
+  const st = document.createElement('style');
+  st.textContent = [
+    '.roll-bar{margin-top:6px;}',
+    '.roll-done{font-size:12px;color:#8b8f96;background:#f7f5ff;border:1px dashed #d9cff2;border-radius:6px;padding:3px 8px;display:inline-block;}',
+    '.roll-btn{padding:6px 14px;border-radius:8px;border:1px solid #d9cff2;background:#f0eaff;color:#5b3fa8;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}',
+    '.roll-btn:hover{background:#e4d9ff;}'
+  ].join('\n');
+  document.head.appendChild(st);
+})();
+/* ====== 骰子检定 DLC END ====== */
 
 /* ====== 附加本地文本文件（独立模块，不改动原有逻辑） ====== */
 (function(){
