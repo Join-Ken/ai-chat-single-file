@@ -206,7 +206,7 @@
 let seq = 0;
 function uid(p){ seq = (seq + 1) % 100000; return p + '_' + Date.now().toString(36) + '_' + seq.toString(36) + Math.random().toString(36).slice(2, 6); }
 function escapeHtml(s){
-  return String(s == null ? '' : s).replace(...
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;')...
 }
 const IS_TOUCH = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || (navigator.maxTouchPoints > 1);
 
