@@ -848,7 +848,7 @@ function endpoint(base){
   return b + '/chat/completions';
 }
 function buildSystemPrompt(cfg, searchNote, conv, ragNote){
-  let sys = '[当前时间] ' + new Date().toLocaleString('zh-CN') + '\n\n' + (cfg.system || '');
+  let sys = (cfg.system || '');
   if(conv && conv.summary){
     sys += '\n\n【前情提要】\n以下是这次对话较早部分的压缩摘要，用它来延续上下文：\n' + conv.summary;
   }
@@ -1414,6 +1414,16 @@ async function runCompletion(conv){
       .filter(m => m !== placeholder && !m.pending && !m.error && m.content && m.content.trim())
       .map(m => ({ role: m.role, content: m.content }));
     const sys = buildSystemPrompt(cfg, searchNote, conv, ragNote);
+    /* 时间拼到最后一条 user 消息前面：只改发给 API 的这份 history 副本，
+       不写回 conv.messages。这样 system 整段 + 全部旧历史都能命中缓存，
+       只有时间和当前这条新问题需要重算。 */
+    const nowStr = new Date().toLocaleString('zh-CN');
+    for(let i = history.length - 1; i >= 0; i--){
+      if(history[i].role === 'user'){
+        history[i] = { role: 'user', content: '[当前时间] ' + nowStr + '\n\n' + history[i].content };
+        break;
+      }
+    }
     const messages = sys ? [{ role: 'system', content: sys }, ...history] : history;
     const payload = { model: cfg.model, messages, stream: true };
     if(cfg.temperature !== null) payload.temperature = cfg.temperature;
@@ -1616,9 +1626,13 @@ function bindEvents(){
   chat.addEventListener('click', onChatClick);
   chat.addEventListener('scroll', updateToBottomBtn);
   const input = document.getElementById('input');
+  if(IS_TOUCH) input.placeholder = '输入消息，按回车换行，点「发送」发出去';
   input.addEventListener('input', autoResize);
   input.addEventListener('keydown', e => {
-    if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); send(); }
+    if(e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;
+    if(IS_TOUCH || e.shiftKey) return;
+    e.preventDefault();
+    send();
   });
   window.addEventListener('resize', () => { autoResize(); updateToBottomBtn(); });
 }
