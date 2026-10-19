@@ -206,8 +206,9 @@
 let seq = 0;
 function uid(p){ seq = (seq + 1) % 100000; return p + '_' + Date.now().toString(36) + '_' + seq.toString(36) + Math.random().toString(36).slice(2, 6); }
 function escapeHtml(s){
-  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  return String(s == null ? '' : s).replace(...
 }
+const IS_TOUCH = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || (navigator.maxTouchPoints > 1);
 
 /* 把模型输出的 Markdown 转成 HTML。
    支持：代码块（带复制按钮）、行内代码、粗体、删除线、斜体、链接、
@@ -1617,7 +1618,10 @@ function bindEvents(){
   const input = document.getElementById('input');
   input.addEventListener('input', autoResize);
   input.addEventListener('keydown', e => {
-    if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); send(); }
+    if(e.key !== 'Enter' || e.isComposing) return;
+    if(IS_TOUCH || e.shiftKey) return;
+    e.preventDefault();
+    send();
   });
   window.addEventListener('resize', () => { autoResize(); updateToBottomBtn(); });
 }
