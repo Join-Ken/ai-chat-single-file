@@ -1555,7 +1555,6 @@ function buildSystemPrompt(cfg, searchNote, conv, ragNote, loreHits){
   }else{
     sys += '\n\n【当前模式】普通聊天模式（RPG 已关闭）。不要输出 [STATE]、[LORE_ADD]、[LORE_UPDATE]、[LORE_DELETE] 这类标签；它们不会被处理，只会当普通文字显示出来。';
   }
-  sys += '\n\n[当前时间] ' + new Date().toLocaleString('zh-CN');
   return sys;
 }
 
@@ -2116,6 +2115,15 @@ async function runCompletion(conv){
       .filter(m => m !== placeholder && !m.pending && !m.error && m.content && m.content.trim())
       .map(m => ({ role: m.role, content: m.content }));
     const sys = buildSystemPrompt(cfg, searchNote, conv, ragNote, loreHits);
+    /* 时间拼到最后一条 user 消息的开头：只改发给 API 的这份副本，
+       不写回 conv.messages。这样 system 整段稳定，前缀才能命中缓存。 */
+    const nowStr = new Date().toLocaleString('zh-CN');
+    for(let i = history.length - 1; i >= 0; i--){
+      if(history[i].role === 'user'){
+        history[i] = { role: 'user', content: '[当前时间] ' + nowStr + '\n\n' + history[i].content };
+        break;
+      }
+    }
     const messages = sys ? [{ role: 'system', content: sys }, ...history] : history;
     const payload = { model: cfg.model, messages, stream: true };
     if(cfg.temperature !== null) payload.temperature = cfg.temperature;
@@ -2352,9 +2360,10 @@ function bindEvents(){
   chat.addEventListener('scroll', updateToBottomBtn);
 
   const input = document.getElementById('input');
+  if(IS_TOUCH) input.placeholder = '输入消息，按回车换行，点「发送」发出去';
   input.addEventListener('input', autoResize);
   input.addEventListener('keydown', e => {
-    if(e.key !== 'Enter' || e.isComposing) return;
+    if(e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;
     if(IS_TOUCH || e.shiftKey) return;
     e.preventDefault();
     send();
