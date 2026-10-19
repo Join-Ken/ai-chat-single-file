@@ -76,29 +76,41 @@
   .mem-scope{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;color:#92700c;background:#fef8e7;border:1px solid #f0e6c8;border-radius:6px;padding:5px 8px;margin:2px 0 4px;}
   .mem-scope button{padding:3px 10px;border-radius:6px;border:1px solid #d8dbe0;background:#fff;font-size:12px;color:#374151;}
   .mem-scope button:hover{background:#f3f4f6;}
+  /* RPG 面板：始终可见，是开关 + RPG 专属功能的控制台 */
   #rpgPanel{border-bottom:1px solid var(--border);background:#f7f5ff;padding:0 10px;}
-  #rpgPanel summary{cursor:pointer;padding:6px 0;font-size:12.5px;color:#6b4ea2;list-style:none;}
+  #rpgPanel summary{cursor:pointer;padding:6px 0;font-size:12.5px;color:#6b4ea2;list-style:none;font-weight:600;}
   #rpgPanel summary::-webkit-details-marker{display:none;}
   #rpgPanel summary::before{content:'▸ ';}
   #rpgPanel[open] summary::before{content:'▾ ';}
-  .rpg-body{padding-bottom:10px;display:grid;gap:6px;max-height:50vh;overflow-y:auto;}
+  .rpg-body{padding-bottom:10px;display:grid;gap:7px;max-height:62vh;overflow-y:auto;}
   .rpg-status{font-size:12.5px;color:#6b4ea2;background:#fff;border:1px solid #d9cff2;border-radius:6px;padding:5px 8px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
   .rpg-status .on{color:#0a7a2f;font-weight:600;}
   .rpg-status .off{color:#9ca3af;}
   .rpg-status .rpg-cost{font-size:11.5px;color:#8b8f96;}
-  .rpg-status button{padding:3px 10px;border-radius:6px;border:1px solid #d8dbe0;background:#fff;font-size:12px;color:#374151;}
-  .rpg-status button:hover{background:#f3f4f6;}
-  .scene-bar{font-size:12.5px;background:#fff;border:1px solid #d9cff2;border-radius:6px;padding:5px 8px;display:flex;flex-wrap:wrap;gap:8px;color:#3f3a34;align-items:center;}
+  .rpg-status button{padding:4px 12px;border-radius:6px;border:1px solid #bcd7ff;background:var(--primary-weak);color:#0b4ea2;font-size:12px;font-weight:600;}
+  .rpg-status button:hover{background:#d7e8ff;}
+  .rpg-scope-note{font-size:11.5px;color:#6b7280;background:#fff;border:1px dashed #d9cff2;border-radius:6px;padding:5px 8px;line-height:1.65;}
+  .rpg-scope-note b{color:#5b3fa8;}
+  .rpg-subtabs{display:flex;gap:4px;}
+  .rpg-subtabs button{flex:1;padding:6px 8px;border:1px solid #d9cff2;border-radius:6px;background:#fff;font-size:12.5px;color:#5b3fa8;cursor:pointer;}
+  .rpg-subtabs button:hover{background:#f0eaff;}
+  .rpg-subtabs button.on{background:#5b3fa8;color:#fff;border-color:#5b3fa8;font-weight:600;}
+  .rpg-subpage{padding-top:2px;}
+  .rpg-subpage[hidden]{display:none;}
+  .rpg-subhead{font-size:11.5px;color:#6b4ea2;margin:2px 0 4px;}
+  .scene-bar{font-size:12.5px;background:#fff;border:1px solid #d9cff2;border-radius:6px;padding:5px 8px;display:flex;flex-wrap:wrap;gap:8px;color:#3f3a34;align-items:center;margin-bottom:6px;}
   .scene-item{display:inline-flex;gap:4px;align-items:baseline;max-width:100%;flex-wrap:wrap;}
   .scene-k{font-size:10.5px;color:#6b4ea2;background:#f0eaff;padding:1px 5px;border-radius:3px;flex:0 0 auto;}
   .scene-v{word-break:break-word;}
   .scene-empty{color:#9ca3af;font-size:12px;}
-  #lorePanel{border-bottom:1px solid var(--border);background:#f0f8f5;padding:0 10px;}
-  #lorePanel summary{cursor:pointer;padding:6px 0;font-size:12.5px;color:#3d7a5c;list-style:none;}
-  #lorePanel summary::-webkit-details-marker{display:none;}
-  #lorePanel summary::before{content:'▸ ';}
-  #lorePanel[open] summary::before{content:'▾ ';}
-  .lore-body{padding-bottom:8px;display:grid;gap:5px;max-height:50vh;overflow-y:auto;}
+  /* 设定库 */
+  .lore-body{display:grid;gap:5px;}
+  .lore-tabs{display:flex;gap:4px;flex-wrap:wrap;margin:2px 0 4px;}
+  .lore-tabs button{flex:1;min-width:58px;padding:5px 6px;border:1px solid #c8e6d5;border-radius:6px;background:#fff;font-size:12px;color:#2d6a4f;cursor:pointer;}
+  .lore-tabs button:hover{background:#e6f4ec;}
+  .lore-tabs button.on{background:#2d6a4f;color:#fff;border-color:#2d6a4f;}
+  .lore-tabs button .n{font-size:10.5px;opacity:.8;margin-left:3px;}
+  .lore-empty{font-size:12.5px;color:#9ca3af;padding:8px 4px;text-align:center;}
   .lore-item{display:flex;flex-direction:column;gap:3px;font-size:12.5px;background:#fff;border:1px solid #c8e6d5;border-radius:6px;padding:5px 8px;}
   .lore-item.disabled{opacity:.55;}
   .lore-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
@@ -108,37 +120,29 @@
   .lore-actions button{border:none;background:transparent;color:#6b7280;cursor:pointer;font-size:12px;padding:1px 4px;border-radius:3px;}
   .lore-actions button:hover{background:#eef0f3;color:var(--text);}
   .lore-content{color:#4b5563;word-break:break-word;white-space:pre-wrap;}
-  .lore-add{display:grid;gap:4px;margin-top:4px;padding:6px;background:#fff;border:1px dashed #c8e6d5;border-radius:6px;}
+  .lore-add{display:grid;gap:4px;margin-top:6px;padding:8px;background:#fff;border:1px dashed #c8e6d5;border-radius:6px;}
+  .lore-add-hint{font-size:11.5px;color:#2d6a4f;font-weight:600;}
   .lore-add input,.lore-add textarea{width:100%;padding:4px 6px;border:1px solid #d8dbe0;border-radius:5px;font:inherit;font-size:12px;background:#fff;}
   .lore-add textarea{resize:vertical;min-height:44px;}
-  .lore-add select{padding:4px 6px;border:1px solid #d8dbe0;border-radius:5px;font:inherit;font-size:12px;background:#fff;}
-  .lore-group{margin-top:6px;}
-  .lore-group:first-child{margin-top:0;}
-  .lore-group-title{font-size:11.5px;color:#2d6a4f;font-weight:600;padding:2px 2px 3px;display:flex;align-items:center;gap:6px;}
-  .lore-group-count{color:#9ca3af;font-weight:400;font-size:11px;}
+  .lore-add button{padding:5px 10px;border-radius:6px;border:1px solid #bcd7ff;background:var(--primary-weak);font-size:12.5px;justify-self:start;}
   .lore-cat{font-size:10.5px;padding:1px 6px;border-radius:3px;cursor:pointer;border:none;font-family:inherit;font-weight:600;}
   .lore-cat[data-cat="character"]{background:#ffe8dd;color:#b4560c;}
   .lore-cat[data-cat="location"]{background:#e0f2ff;color:#0b4ea2;}
   .lore-cat[data-cat="faction"]{background:#f0e6ff;color:#5b3fa8;}
   .lore-cat[data-cat="other"]{background:#eef0f3;color:#6b7280;}
   .lore-cat:hover{filter:brightness(.95);}
-  /* 三页 tab */
-  #memTabs{display:flex;gap:2px;padding:6px 10px 0;background:var(--panel);border-bottom:1px solid var(--border);}
-  #memTabs button{flex:1;padding:6px 4px;border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;background:transparent;font-size:12.5px;color:var(--muted);cursor:pointer;}
-  #memTabs button:hover{color:var(--text);}
-  #memTabs button.on{background:#fff;border-color:var(--border);color:var(--text);font-weight:600;margin-bottom:-1px;}
-  .mem-page{display:none;}
-  .mem-page.on{display:block;}
-  #statePanel{border-bottom:1px solid var(--border);background:#f0f7ff;padding:0 10px;}
-  #statePanel summary{cursor:pointer;padding:6px 0;font-size:12.5px;color:#1e40af;list-style:none;}
-  #statePanel summary::-webkit-details-marker{display:none;}
-  #statePanel summary::before{content:'▸ ';}
-  #statePanel[open] summary::before{content:'▾ ';}
-  .state-body{padding-bottom:10px;display:grid;gap:4px;max-height:50vh;overflow-y:auto;}
+  /* 状态卡 */
+  .state-body{display:grid;gap:4px;}
   .state-item{display:flex;gap:8px;padding:5px 8px;background:#fff;border:1px solid #c8ddff;border-radius:6px;font-size:12.5px;line-height:1.55;}
   .state-k{color:#1e40af;font-weight:600;flex:0 0 auto;min-width:64px;word-break:break-word;}
   .state-v{color:#1f2328;flex:1;word-break:break-word;white-space:pre-wrap;}
   .state-empty{color:#9ca3af;font-size:12.5px;padding:4px 0;}
+  /* RPG 关闭时：本体 + 记忆库保留；RPG 面板仍在，但只留开关/说明/提示词 */
+  body.rpg-off #stateMini{display:none !important;}
+  body.rpg-off .rpg-subtabs{display:none;}
+  body.rpg-off .rpg-subpage[data-rpage="lore"],
+  body.rpg-off .rpg-subpage[data-rpage="state"]{display:none !important;}
+  body.rpg-off .rpg-subpage[data-rpage="prompt"]{display:block !important;}
   #chatWrap{position:relative;flex:1;min-height:0;display:flex;}
   #chat{flex:1;overflow-y:auto;padding:14px 12px 8px;display:flex;flex-direction:column;gap:10px;}
   .empty{margin:auto;color:#9ca3af;font-size:13px;}
@@ -216,7 +220,7 @@
   }
 </style>
 </head>
-<body>
+<body class="rpg-off">
 
 <div id="scrim"></div>
 <div id="statePopup" hidden></div>
@@ -261,44 +265,45 @@
     </div>
   </details>
 
-  <div id="memTabs">
-    <button type="button" data-tab="memory" class="on">📔 记忆库</button>
-    <button type="button" data-tab="lore">📚 设定库</button>
-    <button type="button" data-tab="state">📊 状态卡</button>
-  </div>
-
-  <div id="memPages">
-    <div class="mem-page on" data-page="memory">
-      <details id="memoryPanel">
-        <summary>记忆库（AI 可自动修改，也可手动编辑）</summary>
-        <div class="mem-body" id="memBody"></div>
-      </details>
-    </div>
-    <div class="mem-page" data-page="lore">
-      <details id="lorePanel">
-        <summary>设定库（本对话独立 · AI 可自动维护 · 关键词触发）</summary>
-        <div class="lore-body" id="loreBody"></div>
-      </details>
-    </div>
-    <div class="mem-page" data-page="state">
-      <details id="statePanel" open>
-        <summary>状态卡（当前 [STATE] 原始字段）</summary>
-        <div class="state-body" id="stateBody"></div>
-      </details>
-    </div>
-  </div>
+  <details id="memoryPanel">
+    <summary>记忆库（AI 可自动修改，也可手动编辑）</summary>
+    <div class="mem-body" id="memBody"></div>
+  </details>
 
   <details id="rpgPanel">
-    <summary>RPG 模式（本对话）</summary>
+    <summary>🎲 RPG 模式</summary>
     <div class="rpg-body">
       <div class="rpg-status" id="rpgStatus"></div>
-      <div id="sceneBar" class="scene-bar"></div>
-      <label id="rpgPromptLabel" style="display:block;font-size:12.5px;color:#374151;">主持人提示词（编辑后保存到本对话）</label>
-      <textarea id="rpgPrompt" rows="8" style="width:100%;padding:6px 8px;border:1px solid #d8dbe0;border-radius:6px;font:inherit;font-size:12px;background:#fff;resize:vertical;"></textarea>
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-        <button id="rpgSaveBtn" style="padding:5px 12px;border-radius:6px;border:1px solid #bcd7ff;background:#e8f1ff;color:#0b4ea2;font-weight:600;font-size:12.5px;">保存到本对话</button>
-        <button id="rpgResetBtn" style="padding:5px 12px;border-radius:6px;border:1px solid #d8dbe0;background:#fff;font-size:12.5px;">恢复默认</button>
-        <span id="rpgSaveTip" style="font-size:12px;color:#0a7a2f;"></span>
+      <div class="rpg-scope-note">
+        受这个开关控制的功能：<b>设定库</b>、<b>状态卡</b>、<b>场景栏</b>、<b>顶栏状态按钮</b>，
+        以及每轮注入的 RPG 提示词与设定指令。
+        关闭后这些会一起停用，模型不再写入设定与状态；<b>记忆库、摘要、检索、联网和普通聊天不受影响</b>。
+        重新开启时，之前记录的设定与状态都还在。
+      </div>
+
+      <div class="rpg-subtabs" id="rpgSubTabs">
+        <button type="button" data-rtab="prompt" class="on">主持人提示词</button>
+        <button type="button" data-rtab="lore">设定库</button>
+        <button type="button" data-rtab="state">状态卡</button>
+      </div>
+
+      <div class="rpg-subpage" data-rpage="prompt">
+        <div id="rpgPromptLabel" class="rpg-subhead">主持人提示词（任何时候都可以编辑，保存后下一轮生效）</div>
+        <textarea id="rpgPrompt" rows="8" style="width:100%;padding:6px 8px;border:1px solid #d8dbe0;border-radius:6px;font:inherit;font-size:12px;background:#fff;resize:vertical;"></textarea>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:5px;">
+          <button id="rpgSaveBtn" style="padding:5px 12px;border-radius:6px;border:1px solid #bcd7ff;background:#e8f1ff;color:#0b4ea2;font-weight:600;font-size:12.5px;">保存提示词</button>
+          <button id="rpgResetBtn" style="padding:5px 12px;border-radius:6px;border:1px solid #d8dbe0;background:#fff;font-size:12.5px;">恢复默认</button>
+          <span id="rpgSaveTip" style="font-size:12px;color:#0a7a2f;"></span>
+        </div>
+      </div>
+
+      <div class="rpg-subpage" data-rpage="lore" hidden>
+        <div class="lore-body" id="loreBody"></div>
+      </div>
+
+      <div class="rpg-subpage" data-rpage="state" hidden>
+        <div id="sceneBar" class="scene-bar"></div>
+        <div class="state-body" id="stateBody"></div>
       </div>
     </div>
   </details>
@@ -322,7 +327,6 @@ function uid(p){ seq = (seq + 1) % 100000; return p + '_' + Date.now().toString(
 function escapeHtml(s){
   return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
-/* 触屏设备：Enter 换行；桌面：Enter 发送 */
 const IS_TOUCH = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || (navigator.maxTouchPoints > 1);
 
 function mdToHtml(src){
@@ -872,6 +876,11 @@ function updateStateMini(){
   const btn = document.getElementById('stateMini');
   if(!btn) return;
   const conv = allConvs[currentId];
+  if(!getRpgOn(conv)){
+    btn.hidden = true;
+    btn.textContent = '';
+    return;
+  }
   const st = (conv && conv.state && typeof conv.state === 'object') ? conv.state : {};
   const parts = [];
   if(st.hp !== undefined || st.maxHp !== undefined){
@@ -961,6 +970,32 @@ const DEFAULT_RPG_PROMPT = [
 '- 选项用「A. 描述」逐行列出，每个选项不超过 20 字'
 ].join('\n');
 
+/* RPG 页内部子页（提示词 / 设定库 / 状态卡），跨会话保留 */
+const RPG_TAB_KEY = 'chatRpgTab_RPG';
+const RPG_TAB_LIST = ['prompt', 'lore', 'state'];
+
+function switchRpgTab(tab){
+  if(!RPG_TAB_LIST.includes(tab)) tab = 'prompt';
+  const conv = allConvs[currentId];
+  if(!getRpgOn(conv) && tab !== 'prompt') tab = 'prompt';
+  document.querySelectorAll('#rpgSubTabs button').forEach(b => {
+    b.classList.toggle('on', b.dataset.rtab === tab);
+  });
+  document.querySelectorAll('.rpg-subpage').forEach(p => {
+    const on = p.dataset.rpage === tab;
+    p.classList.toggle('on', on);
+    p.hidden = !on;
+  });
+  try{ localStorage.setItem(RPG_TAB_KEY, tab); }catch(e){}
+  if(tab === 'lore') renderLore();
+  if(tab === 'state') renderStatePanel();
+}
+function initRpgTabs(){
+  document.querySelectorAll('#rpgSubTabs button').forEach(b => {
+    b.onclick = () => switchRpgTab(b.dataset.rtab);
+  });
+}
+
 function toggleRpg(){
   const conv = allConvs[currentId];
   if(!conv) return;
@@ -972,6 +1007,9 @@ function toggleRpg(){
   updateRpgBtn();
   renderRpgPanel();
   renderSidebar();
+  renderRpgState();
+  const panel = document.getElementById('rpgPanel');
+  if(panel) panel.open = true;
 }
 function updateRpgBtn(){
   const btn = document.getElementById('rpgBtn');
@@ -985,6 +1023,10 @@ function renderSceneBar(){
   const bar = document.getElementById('sceneBar');
   if(!bar) return;
   const conv = allConvs[currentId];
+  if(!getRpgOn(conv)){
+    bar.innerHTML = '<span class="scene-empty">RPG 未开启，场景不显示。</span>';
+    return;
+  }
   const st = conv && conv.state && typeof conv.state === 'object' ? conv.state : {};
   const loc = st.location ? String(st.location) : '';
   const present = Array.isArray(st.present) ? st.present.filter(Boolean) : [];
@@ -1022,24 +1064,43 @@ function renderRpgPanel(){
   st.innerHTML =
     '<span>本对话 RPG 模式：' + (on ? '<span class="on">已开启</span>' : '<span class="off">未开启</span>') + '</span>' +
     '<span class="rpg-cost">提示词约 ' + len + ' 字' + (on ? '，每轮固定开销' : '，开启后每轮固定注入') + '</span>' +
-    '<button type="button" id="rpgToggleInPanel">' + (on ? '关闭' : '开启') + '</button>';
+    '<button type="button" id="rpgToggleInPanel">' + (on ? '关闭 RPG' : '开启 RPG') + '</button>';
   const tb = document.getElementById('rpgToggleInPanel');
   if(tb) tb.onclick = toggleRpg;
   if(document.activeElement !== ta){
     ta.value = effective;
   }
   if(lbl){
-    lbl.textContent = on ? '主持人提示词（正在使用 · 已锁定，先关闭再改）' : '主持人提示词（未启用，保存后开启生效）';
-    lbl.style.color = on ? '#0a7a2f' : '#374151';
+    lbl.textContent = on
+      ? '主持人提示词（已开启 · 改动后点保存，下一轮生效）'
+      : '主持人提示词（未开启 · 可先编辑，开启后生效）';
+    lbl.style.color = on ? '#0a7a2f' : '#6b4ea2';
     lbl.style.fontWeight = on ? '600' : '400';
   }
-  ta.readOnly = !!on;
-  ta.style.background = on ? '#f3f4f6' : '#fff';
+  /* 任何时候都可编辑，避免「关掉后写不了提示词」的死锁 */
+  ta.readOnly = false;
+  ta.style.background = '#fff';
   const saveBtn = document.getElementById('rpgSaveBtn');
   const resetBtn = document.getElementById('rpgResetBtn');
-  if(saveBtn) saveBtn.disabled = !!on;
-  if(resetBtn) resetBtn.disabled = !!on;
+  if(saveBtn) saveBtn.disabled = false;
+  if(resetBtn) resetBtn.disabled = false;
   renderSceneBar();
+}
+function renderRpgState(){
+  const conv = allConvs[currentId];
+  const on = getRpgOn(conv);
+  document.body.classList.toggle('rpg-on', on);
+  document.body.classList.toggle('rpg-off', !on);
+  if(!on){
+    hideStatePopup();
+    switchRpgTab('prompt');
+  }else{
+    let saved = 'prompt';
+    try{ saved = localStorage.getItem(RPG_TAB_KEY) || 'prompt'; }catch(e){}
+    if(!RPG_TAB_LIST.includes(saved)) saved = 'prompt';
+    switchRpgTab(saved);
+  }
+  updateStateMini();
 }
 function saveRpgPrompt(){
   const conv = allConvs[currentId];
@@ -1047,7 +1108,7 @@ function saveRpgPrompt(){
   if(!conv || !ta) return;
   setRpg(conv, getRpgOn(conv), ta.value);
   const tip = document.getElementById('rpgSaveTip');
-  if(tip){ tip.textContent = '已保存'; setTimeout(() => { tip.textContent = ''; }, 1500); }
+  if(tip){ tip.textContent = '已保存，下一轮生效'; setTimeout(() => { tip.textContent = ''; }, 1800); }
   renderRpgPanel();
 }
 function resetRpgPrompt(){
@@ -1096,65 +1157,80 @@ function saveLoreOf(conv, lore){
   try{ dbPut(conv).catch(() => {}); }catch(e){}
 }
 
+/* 设定库当前分页（角色/地点/势力/其他），跨会话保留 */
+let loreTab = 'character';
+
 function renderLore(){
   const body = document.getElementById('loreBody');
   if(!body) return;
   const conv = allConvs[currentId];
   const lore = getLoreOf(conv);
 
+  /* 快照用户正在输入的内容，重渲染后恢复 */
   const valOf = id => { const el = document.getElementById(id); return el ? el.value : ''; };
   const snap = {
-    cat: valOf('loreCat'),
     name: valOf('loreName'),
     kw: valOf('loreKeywords'),
     content: valOf('loreContent')
   };
 
-  let listHtml = '';
-  if(!lore.length){
-    listHtml = '<div style="font-size:12.5px;color:#9ca3af;padding:4px 0;">还没有设定。AI 会在剧情中自动记录角色、地点、势力等硬设定；你也可以手动添加。关键词命中时设定会自动注入。</div>';
+  const counts = { character: 0, location: 0, faction: 0, other: 0 };
+  lore.forEach(it => { const k = getCatOf(it); counts[k] = (counts[k] || 0) + 1; });
+
+  if(!counts.hasOwnProperty(loreTab)) loreTab = 'character';
+
+  const tabs = LORE_CATS.map(c =>
+    '<button type="button" data-lcat="' + c.k + '" class="' + (loreTab === c.k ? 'on' : '') + '">' +
+      c.label + '<span class="n">' + counts[c.k] + '</span>' +
+    '</button>'
+  ).join('');
+
+  const items = lore.map((it, idx) => ({ it, idx })).filter(x => getCatOf(x.it) === loreTab);
+  let listHtml;
+  if(!items.length){
+    listHtml = '<div class="lore-empty">「' + catLabel(loreTab) + '」分类下还没有设定。' +
+      (lore.length ? '其他分类里有 ' + lore.length + ' 条，可切换上方分页查看。' : '') +
+    '</div>';
   }else{
-    for(const cat of LORE_CATS){
-      const items = lore.map((it, idx) => ({ it, idx })).filter(x => getCatOf(x.it) === cat.k);
-      if(!items.length) continue;
-      const rows = items.map(x => {
-        const it = x.it, i = x.idx;
-        return '<div class="lore-item' + (it.enabled === false ? ' disabled' : '') + '">'
-          + '<div class="lore-head">'
-          +   '<button type="button" class="lore-cat" data-cat="' + cat.k + '" data-li="' + i + '" data-lact="cat" title="点击切换分类">' + escapeHtml(cat.label) + '</button>'
-          +   '<span class="lore-name">' + escapeHtml(it.name) + '</span>'
-          +   '<span class="lore-tag">' + escapeHtml((it.keywords || []).join('、')) + '</span>'
-          +   '<span class="lore-actions">'
-          +     '<button data-li="' + i + '" data-lact="toggle" title="启用/禁用">' + (it.enabled === false ? '○' : '●') + '</button>'
-          +     '<button data-li="' + i + '" data-lact="edit" title="编辑">✎</button>'
-          +     '<button data-li="' + i + '" data-lact="del" title="删除">×</button>'
-          +   '</span>'
-          + '</div>'
-          + '<div class="lore-content">' + escapeHtml(it.content) + '</div>'
-          + '</div>';
-      }).join('');
-      listHtml += '<div class="lore-group">'
-        + '<div class="lore-group-title">' + escapeHtml(cat.label)
-        +   '<span class="lore-group-count">' + items.length + '</span></div>'
-        + rows
+    listHtml = items.map(x => {
+      const it = x.it, i = x.idx;
+      const cat = getCatOf(it);
+      return '<div class="lore-item' + (it.enabled === false ? ' disabled' : '') + '">'
+        + '<div class="lore-head">'
+        +   '<button type="button" class="lore-cat" data-cat="' + cat + '" data-li="' + i + '" data-lact="cat" title="点击切换到下一分类">' + escapeHtml(catLabel(cat)) + '</button>'
+        +   '<span class="lore-name">' + escapeHtml(it.name) + '</span>'
+        +   '<span class="lore-tag">' + escapeHtml((it.keywords || []).join('、')) + '</span>'
+        +   '<span class="lore-actions">'
+        +     '<button data-li="' + i + '" data-lact="toggle" title="启用/禁用">' + (it.enabled === false ? '○' : '●') + '</button>'
+        +     '<button data-li="' + i + '" data-lact="edit" title="编辑">✎</button>'
+        +     '<button data-li="' + i + '" data-lact="del" title="删除">×</button>'
+        +   '</span>'
+        + '</div>'
+        + '<div class="lore-content">' + escapeHtml(it.content) + '</div>'
         + '</div>';
-    }
+    }).join('');
   }
 
-  const catOptions = LORE_CATS.map(c => '<option value="' + c.k + '">' + c.label + '</option>').join('');
   const adder = '<div class="lore-add">'
-    + '<select id="loreCat" title="分类">' + catOptions + '</select>'
+    + '<div class="lore-add-hint">添加到「' + catLabel(loreTab) + '」</div>'
     + '<input id="loreName" placeholder="名称">'
     + '<input id="loreKeywords" placeholder="触发关键词，逗号分隔">'
     + '<textarea id="loreContent" placeholder="设定内容（会原样注入给 AI）"></textarea>'
     + '<button id="loreAddBtn">添加设定</button>'
     + '</div>';
-  body.innerHTML = listHtml + adder;
 
-  if(snap.cat){ const el = document.getElementById('loreCat'); if(el) el.value = snap.cat; }
+  body.innerHTML = '<div class="lore-tabs">' + tabs + '</div>' + listHtml + adder;
+
   if(snap.name){ const el = document.getElementById('loreName'); if(el) el.value = snap.name; }
   if(snap.kw){ const el = document.getElementById('loreKeywords'); if(el) el.value = snap.kw; }
   if(snap.content){ const el = document.getElementById('loreContent'); if(el) el.value = snap.content; }
+
+  body.querySelectorAll('.lore-tabs button').forEach(btn => {
+    btn.onclick = () => {
+      loreTab = btn.dataset.lcat;
+      renderLore();
+    };
+  });
 
   body.querySelectorAll('[data-lact]').forEach(btn => {
     btn.onclick = () => {
@@ -1193,8 +1269,6 @@ function renderLore(){
 
   const addBtn = document.getElementById('loreAddBtn');
   if(addBtn) addBtn.onclick = () => {
-    const catEl = document.getElementById('loreCat');
-    const cat = catEl ? normCat(catEl.value) : 'other';
     const name = document.getElementById('loreName').value.trim();
     const kwRaw = document.getElementById('loreKeywords').value.trim();
     const content = document.getElementById('loreContent').value.trim();
@@ -1202,7 +1276,7 @@ function renderLore(){
     const keywords = kwRaw ? kwRaw.split(/[,，]/).map(s => s.trim()).filter(Boolean) : [name];
     const c = allConvs[currentId];
     const arr = getLoreOf(c).slice();
-    arr.push({ key: uid('l'), cat, name, keywords, content, enabled: true });
+    arr.push({ key: uid('l'), cat: loreTab, name, keywords, content, enabled: true });
     saveLoreOf(c, arr);
     document.getElementById('loreName').value = '';
     document.getElementById('loreKeywords').value = '';
@@ -1287,24 +1361,19 @@ function processLoreTags(text, conv){
   if(changed){ saveLoreOf(conv, lore); renderLore(); }
   return { text: text.trim(), changed };
 }
+
+/* RPG 关闭时，只剥离标签不应用，防止历史残留显示到气泡里 */
+function stripRpgTags(text){
+  let t = String(text || '');
+  t = t.replace(/\[STATE\][\s\S]*?\[\/STATE\]/g, '');
+  t = t.replace(/\[LORE_ADD\][\s\S]*?\[\/LORE_ADD\]/g, '');
+  t = t.replace(/\[LORE_UPDATE\][\s\S]*?\[\/LORE_UPDATE\]/g, '');
+  t = t.replace(/\[LORE_DELETE\][\s\S]*?\[\/LORE_DELETE\]/g, '');
+  return t.trim();
+}
 /* ===== 设定库 END ===== */
 
-/* ===== 三页 tab START（记忆 / 设定 / 状态） ===== */
-const MEM_TAB_KEY = 'chatMemTab_RPG';
-const MEM_TAB_LIST = ['memory', 'lore', 'state'];
-
-function switchMemTab(tab){
-  if(!MEM_TAB_LIST.includes(tab)) tab = 'memory';
-  document.querySelectorAll('#memTabs button').forEach(b => {
-    b.classList.toggle('on', b.dataset.tab === tab);
-  });
-  document.querySelectorAll('.mem-page').forEach(p => {
-    p.classList.toggle('on', p.dataset.page === tab);
-  });
-  try{ localStorage.setItem(MEM_TAB_KEY, tab); }catch(e){}
-  if(tab === 'state') renderStatePanel();
-}
-
+/* ===== 状态卡（RPG 页第三子页） ===== */
 function renderStatePanel(){
   const body = document.getElementById('stateBody');
   if(!body) return;
@@ -1322,17 +1391,7 @@ function renderStatePanel(){
     return '<div class="state-item"><span class="state-k">' + escapeHtml(k) + '</span><span class="state-v">' + escapeHtml(String(v)) + '</span></div>';
   }).join('');
 }
-
-function initMemTabs(){
-  document.querySelectorAll('#memTabs button').forEach(b => {
-    b.onclick = () => switchMemTab(b.dataset.tab);
-  });
-  let saved = 'memory';
-  try{ saved = localStorage.getItem(MEM_TAB_KEY) || 'memory'; }catch(e){}
-  switchMemTab(saved);
-  renderStatePanel();
-}
-/* ===== 三页 tab END ===== */
+/* ===== 状态卡 END ===== */
 
 /* ============ 配置（★ DLC 隔离：key 带 _RPG） ============ */
 function readConfig(){
@@ -1437,7 +1496,7 @@ function buildSystemPrompt(cfg, searchNote, conv, ragNote, loreHits){
   if(rpgOn && rpgPrompt){
     sys += '\n\n' + rpgPrompt;
   }
-  if(conv && conv.state && typeof conv.state === 'object'){
+  if(rpgOn && conv && conv.state && typeof conv.state === 'object'){
     const st = conv.state;
     const loc = st.location ? String(st.location) : '';
     const present = Array.isArray(st.present) ? st.present.filter(Boolean) : [];
@@ -1454,7 +1513,7 @@ function buildSystemPrompt(cfg, searchNote, conv, ragNote, loreHits){
   if(ragNote){
     sys += '\n\n【相关历史片段】\n以下是从这次对话更早的部分（已被摘要压缩掉）里按相关度检索出的原文，可能和当前问题有关，供参考：\n' + ragNote;
   }
-  if(loreHits && loreHits.length){
+  if(rpgOn && loreHits && loreHits.length){
     sys += '\n\n【设定库·本轮相关】\n以下设定与当前语境相关，请严格遵守：\n';
     sys += loreHits.map(h => '【' + catLabel(getCatOf(h)) + '·' + h.name + '】' + h.content).join('\n');
   }
@@ -1471,27 +1530,31 @@ function buildSystemPrompt(cfg, searchNote, conv, ragNote, loreHits){
     + '[MEMORY_DELETE] 编号 [/MEMORY_DELETE]\n\n'
     + '想记住一件新事情就用 ADD；已有条目内容要改了用 UPDATE，写上它前面的编号；确实没用了才用 DELETE。\n'
     + '只记住真正重要、值得长期保留的信息（如用户偏好、身份、关键事实）。不要记录寒暄、临时内容。如果不需要修改记忆，就不要输出这些标签。';
-  const lore = getLoreOf(conv);
-  if(lore.length){
-    sys += '\n\n【设定库索引】\n当前已记录的设定（编号 | 分类 | 名称 | 关键词），内容命中时自动注入：\n';
-    sys += lore.map((it, i) => (i + 1) + ' | ' + catLabel(getCatOf(it)) + ' | ' + it.name + ' | ' + (it.keywords || []).join(',')).join('\n');
+  if(rpgOn){
+    const lore = getLoreOf(conv);
+    if(lore.length){
+      sys += '\n\n【设定库索引】\n当前已记录的设定（编号 | 分类 | 名称 | 关键词），内容命中时自动注入：\n';
+      sys += lore.map((it, i) => (i + 1) + ' | ' + catLabel(getCatOf(it)) + ' | ' + it.name + ' | ' + (it.keywords || []).join(',')).join('\n');
+    }
+    sys += '\n\n【设定库指令】\n本对话的设定库需要你主动维护，不是可选。格式（只放在回复最末尾）：\n'
+      + '[LORE_ADD] 分类 | 名称 | 关键词1,关键词2 | 内容 [/LORE_ADD]\n'
+      + '[LORE_UPDATE] 编号 | 新内容 [/LORE_UPDATE]\n'
+      + '[LORE_DELETE] 编号 [/LORE_DELETE]\n\n'
+      + '分类只允许四个值：角色 / 地点 / 势力 / 其他。\n'
+      + '角色：具体的人物、个体、NPC。\n'
+      + '地点：具体的场所、地理、场景。\n'
+      + '势力：组织、团体、机构。\n'
+      + '其他：不属于上面三类的规则、制度、设定。\n'
+      + '必须 ADD 的情况：玩家明确给出角色卡、地点、势力、世界观规则；你在剧情里正式命名了一个会反复出现的角色、地点或组织。\n'
+      + '必须 UPDATE 的情况：上方索引里已有该条目，但本轮补全了它的信息（新身份、新关系、新归属等）。编号用索引里的编号。\n'
+      + 'DELETE 只在设定彻底作废时用。\n'
+      + '关键词要覆盖玩家可能用到的各种称呼（全名、简称、称号）。\n'
+      + '不要记录：临时数值、一次性的路人、剧情走向、寒暄。同一角色不要重复 ADD。\n'
+      + '兼容：也接受老格式 [LORE_ADD] 名称 | 关键词 | 内容 [/LORE_ADD]（会被归入「其他」）。\n'
+      + '触发规则：玩家发言、当前地点、在场角色或近期对话出现关键词时，该条设定会自动注入上下文。';
+  }else{
+    sys += '\n\n【当前模式】普通聊天模式（RPG 已关闭）。不要输出 [STATE]、[LORE_ADD]、[LORE_UPDATE]、[LORE_DELETE] 这类标签；它们不会被处理，只会当普通文字显示出来。';
   }
-  sys += '\n\n【设定库指令】\n本对话的设定库需要你主动维护，不是可选。格式（只放在回复最末尾）：\n'
-    + '[LORE_ADD] 分类 | 名称 | 关键词1,关键词2 | 内容 [/LORE_ADD]\n'
-    + '[LORE_UPDATE] 编号 | 新内容 [/LORE_UPDATE]\n'
-    + '[LORE_DELETE] 编号 [/LORE_DELETE]\n\n'
-    + '分类只允许四个值：角色 / 地点 / 势力 / 其他。\n'
-    + '角色：具体的人物、个体、NPC。\n'
-    + '地点：具体的场所、地理、场景。\n'
-    + '势力：组织、团体、机构。\n'
-    + '其他：不属于上面三类的规则、制度、设定。\n'
-    + '必须 ADD 的情况：玩家明确给出角色卡、地点、势力、世界观规则；你在剧情里正式命名了一个会反复出现的角色、地点或组织。\n'
-    + '必须 UPDATE 的情况：上方索引里已有该条目，但本轮补全了它的信息（新身份、新关系、新归属等）。编号用索引里的编号。\n'
-    + 'DELETE 只在设定彻底作废时用。\n'
-    + '关键词要覆盖玩家可能用到的各种称呼（全名、简称、称号）。\n'
-    + '不要记录：临时数值、一次性的路人、剧情走向、寒暄。同一角色不要重复 ADD。\n'
-    + '兼容：也接受老格式 [LORE_ADD] 名称 | 关键词 | 内容 [/LORE_ADD]（会被归入「其他」）。\n'
-    + '触发规则：玩家发言、当前地点、在场角色或近期对话出现关键词时，该条设定会自动注入上下文。';
   return sys;
 }
 
@@ -1579,11 +1642,8 @@ function selectConversation(id){
   renderMemory();
   updateRpgBtn();
   renderRpgPanel();
-  renderLore();
   syncSystemPromptInput();
-  renderStatePanel();
-  updateStateMini();
-  hideStatePopup();
+  renderRpgState();
   if(window.matchMedia('(min-width: 761px)').matches) document.getElementById('input').focus();
 }
 async function deleteConversation(id){
@@ -2044,7 +2104,9 @@ async function runCompletion(conv){
       }
     }catch(e){ console.warn('检索失败（忽略）：', e); }
     let loreHits = [];
-    try{ loreHits = collectLoreHits(conv, lastUserText(conv)); }catch(e){}
+    try{
+      if(getRpgOn(conv)) loreHits = collectLoreHits(conv, lastUserText(conv));
+    }catch(e){}
     placeholder.ragNotice = ragHits ? ('🔎 已从早期对话检索到 ' + ragHits + ' 条相关片段') : '';
     if(placeholder.ragNotice && currentId === conv.id) setRagNotice(placeholder.key, placeholder.ragNotice);
 
@@ -2136,15 +2198,23 @@ async function runCompletion(conv){
     placeholder.think = accThink;
     placeholder.pending = false;
 
+    /* 标签处理：RPG 关闭时只剥离不应用，保证「完全只剩本体」 */
     let finalText = placeholder.content || '';
-    const st = processStateTags(finalText, conv);
-    finalText = st.text;
+    let stChanged = false, lrChanged = false;
+    if(getRpgOn(conv)){
+      const st = processStateTags(finalText, conv);
+      finalText = st.text;
+      stChanged = st.changed;
+      const lr = processLoreTags(finalText, conv);
+      finalText = lr.text;
+      lrChanged = lr.changed;
+    }else{
+      finalText = stripRpgTags(finalText);
+    }
     const mr = processMemoryTags(finalText, conv);
     finalText = mr.text;
-    const lr = processLoreTags(finalText, conv);
-    finalText = lr.text;
     placeholder.content = finalText;
-    if(!finalText && (mr.changed || st.changed || lr.changed)) placeholder.notice = '✅ 已更新状态/记忆/设定';
+    if(!finalText && (mr.changed || stChanged || lrChanged)) placeholder.notice = '✅ 已更新状态/记忆/设定';
 
     const alive = !!allConvs[conv.id];
     if(alive){ conv.updatedAt = Date.now(); try{ await dbPut(conv); }catch(e){ console.error(e); } }
@@ -2310,7 +2380,7 @@ async function boot(){
   loadConfig();
   bindEvents();
   autoResize();
-  initMemTabs();
+  initRpgTabs();
   renderMemory();
   try{
     db = await openDB();
