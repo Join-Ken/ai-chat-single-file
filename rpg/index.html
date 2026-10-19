@@ -2363,11 +2363,13 @@ async function runCompletion(conv, overrideMessages){
     if(getRpgOn(conv)){
       if(getDiceOn(conv)){
         const rm = finalText.match(/\[ROLL\]([\s\S]*?)\[\/ROLL\]/i);
-        if(rm) rollReq = parseRollSpec(rm[1]);
+        if(rm){
+          rollReq = parseRollSpec(rm[1]);
+          if(!rollReq) console.warn('[ROLL] 標籤解析失敗，原始內容：', rm[1]);
+        }
       }
       finalText = finalText.replace(/\[ROLL\][\s\S]*?\[\/ROLL\]/gi, '').trim();
-    }
-    placeholder.content = finalText;
+    }    placeholder.content = finalText;
     if(!finalText && (mr.changed || stChanged || lrChanged)) placeholder.notice = '✅ 已更新状态/记忆/设定';
     if(rollReq){
       placeholder.rollRequest = rollReq;
@@ -2597,12 +2599,21 @@ let pendingRollCtx = null;
 
 function parseRollSpec(raw){
   const s = String(raw || '').trim();
-  const m = s.match(/^(\d*d\d+)\s*([+-]\s*\d+)?\s*(?:(?:vs\.?|对抗|dc)\s*(\d+))?$/i);
-  if(!m) return null;
-  const expr = m[1].toLowerCase();
-  const modRaw = m[2] ? m[2].replace(/\s+/g, '') : '';
+  // 主體：XdY[+-N]
+  const base = s.match(/^(\d*d\d+)\s*([+-]\s*\d+)?/i);
+  if(!base) return null;
+  const expr = base[1].toLowerCase();
+  const modRaw = base[2] ? base[2].replace(/\s+/g, '') : '';
   const mod = modRaw ? parseInt(modRaw, 10) : 0;
-  const dc = m[3] ? parseInt(m[3], 10) : null;
+
+  // 尾部：可選的 vs/對抗 + 可選的 DC 前綴 + 數字
+  // 支援：vs 15 / vs. 15 / vs DC15 / vs. DC15 / 對抗 15 / 對抗DC15 / DC15 / dc 15 / 15
+  let dc = null;
+  const rest = s.slice(base[0].length).trim();
+  if(rest){
+    const dcM = rest.match(/^(?:(?:vs\.?|对抗)\s*)?(?:dc\s*)?(\d+)$/i);
+    if(dcM) dc = parseInt(dcM[1], 10);
+  }
   return { expr, mod, dc, display: expr + (mod ? (mod > 0 ? '+' + mod : mod) : '') };
 }
 
