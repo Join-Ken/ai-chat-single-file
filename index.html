@@ -650,11 +650,45 @@ function retrieveRelevant(conv, query, topK){
 }
 
 /* ============ 记忆系统 ============ */
+
+/* 软阈值：记忆库条目数达到这个值后，在 system 里提醒 AI 考虑合并/更新/删除。
+   不是硬上限，不会自动截断任何记忆。只在条目数增长时强提醒，条目数没变时弱提醒，
+   条目数回落到阈值以下时 lastMemWarn 归零，下次再涨上来会重新强提醒。
+   因为记忆条目增减本来就会让 system 变化、缓存本就断裂，提醒只是搭在同一个断裂点上，
+   不额外增加缓存代价。 */
+const MEM_SOFT_LIMIT = 18;
+
+/* 记忆读失败时记一句人话提示，供记忆面板顶栏显示。
+   每次 getMemory 都会重新判断，数据修好了就自动消失。 */
+let memoryLoadError = '';
+
+/* 独立记忆写库失败的提示，按会话对象存在 WeakMap 里。
+   不挂到 conv 上：conv 会被 dbPut 写进 IndexedDB、被导出到 JSON，
+   临时错误不该跟着走。WeakMap 不参与结构化克隆，导出时自然消失。 */
+const memorySaveErrorMap = new WeakMap();
+
 function getMemory(){
-  try{ return JSON.parse(localStorage.getItem('chatMemory') || '[]'); }catch(e){ return []; }
+  const raw = localStorage.getItem('chatMemory');
+  if(!raw){ memoryLoadError = ''; return []; }
+  try{
+    const v = JSON.parse(raw);
+    if(!Array.isArray(v)) throw new Error('数据不是数组');
+    memoryLoadError = '';
+    return v;
+  }catch(e){
+    console.error('记忆库解析失败：', e);
+    memoryLoadError = '记忆库数据损坏（' + ((e && e.message) || e) + '），当前按空库读取。建议先「导出全部」备份，再考虑清空 chatMemory。';
+    return [];
+  }
 }
 function saveMemory(mem){
-  localStorage.setItem('chatMemory', JSON.stringify(mem));
+  try{
+    localStorage.setItem('chatMemory', JSON.stringify(mem));
+    return true;
+  }catch(e){
+    console.error('记忆保存失败：', e);
+    return false;
+  }
 }
 function getMemoryOf(conv){
   if(conv && conv.memScope === 'isolated') return Array.isArray(conv.memory) ? conv.memory : [];
@@ -663,10 +697,17 @@ function getMemoryOf(conv){
 function saveMemoryOf(conv, mem){
   if(conv && conv.memScope === 'isolated'){
     conv.memory = mem;
-    try{ dbPut(conv).catch(() => {}); }catch(e){}
-  }else{
-    saveMemory(mem);
+    memorySaveErrorMap.delete(conv);
+    dbPut(conv).then(() => {
+      memorySaveErrorMap.delete(conv);
+    }).catch(e => {
+      console.error('本对话记忆写库失败：', e);
+      memorySaveErrorMap.set(conv, '本对话记忆写库失败：' + ((e && e.message) || e));
+      if(currentId === conv.id) renderMemory();
+    });
+    return true;
   }
+  return saveMemory(mem);
 }
 function renderMemory(){
   const body = document.getElementById('memBody');
@@ -674,6 +715,16 @@ function renderMemory(){
   const conv = allConvs[currentId];
   const mem = getMemoryOf(conv);
   const isolated = !!(conv && conv.memScope === 'isolated');
+
+  const convSaveError = (conv && isolated) ? memorySaveErrorMap.get(conv) : '';
+  const errBar =
+    (!isolated && memoryLoadError
+      ? '<div style="color:#d92d20;font-size:12.5px;padding:4px 0;line-height:1.5;">⚠️ ' + escapeHtml(memoryLoadError) + '</div>'
+      : '') +
+    (convSaveError
+      ? '<div style="color:#d92d20;font-size:12.5px;padding:4px 0;line-height:1.5;">⚠️ ' + escapeHtml(convSaveError) + '</div>'
+      : '');
+
   const scopeBar = conv ? (
     '<div class="mem-scope">' +
       '<span>本对话记忆：' + (isolated ? '独立' : '跟全局共用') + '</span>' +
@@ -690,31 +741,32 @@ function renderMemory(){
         '</div>'
       )).join('')
     : '<div style="font-size:12.5px;color:#9ca3af;padding:4px 0;">还没有记忆。AI 会自动记住重要信息，你也可以手动添加。</div>';
-  body.innerHTML = scopeBar + listHtml + adder;
+  body.innerHTML = errBar + scopeBar + listHtml + adder;
   body.querySelectorAll('.mem-del').forEach(btn => {
     btn.onclick = () => {
       const i = parseInt(btn.dataset.mi, 10);
       const c = allConvs[currentId];
       const list = getMemoryOf(c).slice();
       list.splice(i, 1);
-      saveMemoryOf(c, list);
+      const ok = saveMemoryOf(c, list);
+      if(!ok) alert('删除失败：记忆写盘失败，本条未删除。请检查浏览器存储空间后重试。');
       renderMemory();
     };
   });
-  const addBtn = document.getElementById('memAddBtn');
-  if(addBtn) addBtn.onclick = addMemoryManual;
   const scopeBtn = document.getElementById('memScopeBtn');
   if(scopeBtn) scopeBtn.onclick = () => {
     const c = allConvs[currentId];
     if(!c) return;
     if(c.memScope === 'isolated'){
       c.memScope = 'global';
+      /* 切回全局后，独立记忆的写库错误提示不再相关，清掉 */
+      memorySaveErrorMap.delete(c);
     }else{
       c.memScope = 'isolated';
       if(!Array.isArray(c.memory)) c.memory = [];
     }
     c.updatedAt = Date.now();
-    try{ dbPut(c).catch(() => {}); }catch(e){}
+    try{ dbPut(c).catch(e => { console.error('切换记忆范围写库失败：', e); }); }catch(e){}
     renderMemory();
   };
 }
@@ -726,38 +778,57 @@ function addMemoryManual(){
   const conv = allConvs[currentId];
   const mem = getMemoryOf(conv).slice();
   mem.push({ content: v });
-  saveMemoryOf(conv, mem);
+  const ok = saveMemoryOf(conv, mem);
+  if(!ok){
+    alert('记忆保存失败，内容仍保留在输入框，可稍后重试');
+    return;
+  }
   inp.value = '';
   renderMemory();
 }
 function processMemoryTags(text, conv){
   const mem = getMemoryOf(conv).slice();
   let changed = false;
+  const warnings = [];
   const dels = [];
+
   text = text.replace(/\[MEMORY_ADD\]([\s\S]*?)\[\/MEMORY_ADD\]/g, (m, c) => {
     const v = c.trim();
     if(v){ mem.push({ content: v }); changed = true; }
+    else warnings.push('新增记忆内容为空，已忽略');
     return '';
   });
+
   text = text.replace(/\[MEMORY_UPDATE\]\s*(\d+)\s*=>\s*([\s\S]*?)\[\/MEMORY_UPDATE\]/g, (m, idx, c) => {
     const i = parseInt(idx, 10) - 1;
     const v = c.trim();
-    if(i >= 0 && i < mem.length && v){ mem[i].content = v; changed = true; }
+    if(i < 0 || i >= mem.length) warnings.push('更新记忆失败：编号 ' + (i + 1) + ' 不存在');
+    else if(!v) warnings.push('更新记忆失败：编号 ' + (i + 1) + ' 内容为空');
+    else { mem[i].content = v; changed = true; }
     return '';
   });
+
   text = text.replace(/\[MEMORY_DELETE\]\s*(\d+)\s*\[\/MEMORY_DELETE\]/g, (m, idx) => {
     const i = parseInt(idx, 10) - 1;
-    if(i >= 0) dels.push(i);
+    if(i < 0) warnings.push('删除记忆失败：编号无效');
+    else dels.push(i);
     return '';
   });
+
   if(dels.length){
     const uniq = Array.from(new Set(dels)).sort((a, b) => b - a);
     for(const i of uniq){
       if(i < mem.length){ mem.splice(i, 1); changed = true; }
+      else warnings.push('删除记忆失败：编号 ' + (i + 1) + ' 不存在');
     }
   }
-  if(changed){ saveMemoryOf(conv, mem); renderMemory(); }
-  return { text: text.trim(), changed: changed };
+
+  if(changed){
+    const ok = saveMemoryOf(conv, mem);
+    if(ok) renderMemory();
+    else warnings.push('记忆写盘失败，刷新后会丢失');
+  }
+  return { text: text.trim(), changed: changed, warnings: warnings };
 }
 
 /* ============ 配置 ============ */
@@ -780,7 +851,7 @@ function saveConfig(){
   if(conv && conv.sysScope === 'isolated'){
     conv.system = cfg.system;
     conv.updatedAt = Date.now();
-    try{ dbPut(conv).catch(() => {}); }catch(e){}
+    try{ dbPut(conv).catch(e => { console.error('保存配置写库失败：', e); }); }catch(e){}
     let g = {};
     try{ g = JSON.parse(localStorage.getItem('chatConfig') || '{}'); }catch(e){}
     g.baseUrl = cfg.baseUrl; g.apiKey = cfg.apiKey; g.model = cfg.model;
@@ -831,7 +902,7 @@ function switchSysScope(){
     if(inp) inp.value = conv.system;
   }
   conv.updatedAt = Date.now();
-  try{ dbPut(conv).catch(() => {}); }catch(e){}
+  try{ dbPut(conv).catch(e => { console.error('切换提示词范围写库失败：', e); }); }catch(e){}
   updateSysScopeUI();
 }
 function loadConfig(){
@@ -859,8 +930,9 @@ function endpoint(base){
 
 /* system 只放稳定的内容：设定 + 摘要 + 记忆库 + 记忆指令。
    检索片段和联网资料每次都会变，移到 user 消息里，
-   保证 system + 旧 history 的 prompt 缓存能命中。 */
-function buildSystemPrompt(cfg, conv){
+   保证 system + 旧 history 的 prompt 缓存能命中。
+   memWarn 为软阈值提醒：0 不显示，1 弱提醒，2 强提醒。 */
+function buildSystemPrompt(cfg, conv, memWarn){
   let sys = (cfg.system || '');
   if(conv && conv.summary){
     sys += '\n\n【前情提要】\n以下是这次对话较早部分的压缩摘要，用它来延续上下文：\n' + conv.summary;
@@ -868,6 +940,19 @@ function buildSystemPrompt(cfg, conv){
   const mem = getMemoryOf(conv);
   if(mem.length){
     sys += '\n\n【记忆库】\n' + mem.map((m, i) => (i + 1) + '. ' + m.content).join('\n');
+  }
+  if(memWarn && mem.length >= MEM_SOFT_LIMIT){
+    sys += '\n\n【记忆整理提醒】\n当前记忆库有 ' + mem.length + ' 条，已偏多。';
+    if(memWarn === 2){
+      sys += '而且还在增加。请在本次回复末尾检查：'
+        + '是否有语义重复的条目可以合并（合并时保留所有关键细节）、'
+        + '是否有过时或不再准确的条目可以更新、'
+        + '是否有确实不再需要的条目可以删除。'
+        + '优先合并和更新，删除要谨慎，不要为了减少数量而丢掉用户身份、偏好或核心约定。'
+        + '需要调整时，用 MEMORY_UPDATE / MEMORY_DELETE 标签处理；不需要调整就忽略这条提醒。';
+    }else{
+      sys += '如本次没有需要合并、更新或删除的条目，忽略这条提醒即可。';
+    }
   }
   sys += '\n\n【记忆修改指令】\n你可以在回复的最末尾使用以下格式修改记忆（不要在其他位置使用，一次可以多条）：\n\n'
     + '[MEMORY_ADD] 新内容 [/MEMORY_ADD]\n'
@@ -935,7 +1020,7 @@ async function newConversation(){
   const empty = Object.values(allConvs).find(c => !c.messages.length);
   if(empty){ selectConversation(empty.id); return; }
   const id = uid('conv');
-  const conv = { id: id, title: '新对话', messages: [], summary: '', summarized: 0, sealed: false, memScope: 'global', memory: [], sysScope: 'global', system: '', lastUserAt: 0, createdAt: Date.now(), updatedAt: Date.now() };
+  const conv = { id: id, title: '新对话', messages: [], summary: '', summarized: 0, sealed: false, memScope: 'global', memory: [], sysScope: 'global', system: '', lastUserAt: 0, lastMemWarn: 0, createdAt: Date.now(), updatedAt: Date.now() };
   allConvs[id] = conv;
   try{ await dbPut(conv); }catch(e){ console.error(e); }
   selectConversation(id);
@@ -1093,23 +1178,26 @@ async function importAll(event){
         sysScope: c.sysScope === 'isolated' ? 'isolated' : 'global',
         system: typeof c.system === 'string' ? c.system : '',
         lastUserAt: typeof c.lastUserAt === 'number' ? c.lastUserAt : 0,
+        lastMemWarn: typeof c.lastMemWarn === 'number' ? c.lastMemWarn : 0,
         createdAt: c.createdAt || Date.now(), updatedAt: c.updatedAt || Date.now()
       };
       allConvs[id] = conv;
       await dbPut(conv);
       imported++;
     }
+    let memWarnText = '';
     if(data.memory && Array.isArray(data.memory)){
       const mem = getMemory();
       const seen = new Set(mem.map(m => m.content));
       data.memory.forEach(m => {
         if(m && m.content && !seen.has(m.content)){ mem.push({ content: m.content }); seen.add(m.content); }
       });
-      saveMemory(mem);
+      const memOk = saveMemory(mem);
+      if(!memOk) memWarnText = '\n⚠️ 但全局记忆写盘失败，刷新后会丢失。';
       renderMemory();
     }
     renderSidebar();
-    alert(imported ? '导入成功，共 ' + imported + ' 个对话' : '没有可导入的对话');
+    alert((imported ? '导入成功，共 ' + imported + ' 个对话' : '没有可导入的对话') + memWarnText);
   }catch(e){ alert('导入失败：' + e.message); }
 }
 
@@ -1257,6 +1345,15 @@ function createMsgEl(m, isLastAi){
     rb.className = 'rag-bar';
     rb.textContent = m.ragNotice;
     wrap.appendChild(rb);
+  }
+  if(m.memWarn){
+    const wb = document.createElement('div');
+    wb.className = 'rag-bar';
+    wb.style.background = '#fff6f5';
+    wb.style.borderColor = '#ffd4d0';
+    wb.style.color = 'var(--danger)';
+    wb.textContent = '⚠️ ' + m.memWarn;
+    wrap.appendChild(wb);
   }
   const actions = document.createElement('div');
   actions.className = 'actions';
@@ -1509,9 +1606,31 @@ async function runCompletion(conv, gapMs){
       .filter(m => m !== placeholder && !m.pending && !m.error && m.content && m.content.trim())
       .map(m => ({ role: m.role, content: m.content }));
 
+    /* 软阈值提醒：只在记忆条目数达到 MEM_SOFT_LIMIT 后触发。
+       条目数比上次提醒时更多 → 强提醒并记下 lastMemWarn；
+       条目数没变或变少但仍 ≥ 阈值 → 弱提醒；
+       回落到阈值以下 → lastMemWarn 归零，下次再涨上来会重新强提醒。
+       记忆条目数增减本来就会改 system、断缓存，提醒只搭在同一个断裂点上。 */
+    const memCount = getMemoryOf(conv).length;
+    let memWarn = 0;
+    if(memCount >= MEM_SOFT_LIMIT){
+      const lastWarn = conv.lastMemWarn || 0;
+      if(memCount > lastWarn){
+        memWarn = 2;
+        conv.lastMemWarn = memCount;
+        conv.updatedAt = Date.now();
+        dbPut(conv).catch(() => {});
+      }else{
+        memWarn = 1;
+      }
+    }else if(conv.lastMemWarn){
+      conv.lastMemWarn = 0;
+      dbPut(conv).catch(() => {});
+    }
+
     /* system 只放稳定内容；检索片段、联网资料、时间拼到最后一条 user 消息，
        这样 system + 旧 history 每次都一样，prompt 缓存能命中。 */
-    const sys = buildSystemPrompt(cfg, conv);
+    const sys = buildSystemPrompt(cfg, conv, memWarn);
     let extra = '';
     if(ragNote){
       extra += '【相关历史片段】\n以下是从这次对话更早的部分（已被摘要压缩掉）里按相关度检索出的原文，可能和当前问题有关，供参考：\n' + ragNote + '\n\n';
@@ -1616,9 +1735,16 @@ async function runCompletion(conv, gapMs){
     if(timer){ clearTimeout(timer); timer = 0; }
     placeholder.think = accThink;
     placeholder.pending = false;
-    const r = processMemoryTags(placeholder.content, conv);
-    placeholder.content = r.text;
-    if(!placeholder.content && r.changed) placeholder.notice = '✅ 已更新记忆';
+    /* 记忆处理单独包一层：即使标签解析炸了，也不影响下面的按钮恢复与写库。 */
+    try{
+      const r = processMemoryTags(placeholder.content, conv);
+      placeholder.content = r.text;
+      if(r.warnings && r.warnings.length) placeholder.memWarn = r.warnings.join('；');
+      if(!placeholder.content && r.changed) placeholder.notice = '✅ 已更新记忆';
+    }catch(e){
+      console.error('处理记忆标签失败：', e);
+      placeholder.memWarn = '记忆处理失败：' + ((e && e.message) || e);
+    }
     const alive = !!allConvs[conv.id];
     if(alive){ conv.updatedAt = Date.now(); try{ await dbPut(conv); }catch(e){ console.error(e); } }
     activeReq = null;
@@ -1771,6 +1897,7 @@ async function boot(){
         sysScope: c.sysScope === 'isolated' ? 'isolated' : 'global',
         system: typeof c.system === 'string' ? c.system : '',
         lastUserAt: typeof c.lastUserAt === 'number' ? c.lastUserAt : 0,
+        lastMemWarn: typeof c.lastMemWarn === 'number' ? c.lastMemWarn : 0,
         createdAt: c.createdAt || Date.now(), updatedAt: c.updatedAt || Date.now()
       };
     });
