@@ -2821,24 +2821,32 @@ async function runCompletion(conv, overrideMessages, gapMs){
       const stableSys = buildStableSystem(cfg, conv, memWarn, loreWarn);
       const msgs = stableSys ? [{ role: 'system', content: stableSys }, ...history] : [...history];
 
-      let timeTail = '';
-      if(!getRpgOn(conv)){
-        const nowStr = new Date().toLocaleString('zh-CN');
-        timeTail = '\n\n[当前时间] ' + nowStr;
-        if(gapMs && gapMs > TIME_GAP_THRESHOLD){
-          timeTail += '（距上次发言 ' + fmtGap(gapMs) + '）';
-        }
+      let lastUserIdx = -1;
+      for(let i = msgs.length - 1; i >= 0; i--){
+        if(msgs[i].role === 'user'){ lastUserIdx = i; break; }
       }
-      if(dynPrefix || timeTail){
-        for(let i = msgs.length - 1; i >= 0; i--){
-          if(msgs[i].role === 'user'){
-            msgs[i] = {
-              role: 'user',
-              content: (dynPrefix ? dynPrefix + '\n\n' : '') + msgs[i].content + timeTail
-            };
-            break;
+
+      if(dynPrefix && lastUserIdx >= 0){
+        msgs.splice(lastUserIdx, 0, {
+          role: 'system',
+          content: '【以下是本轮背景资料,不是用户发言,仅作参考】\n\n' + dynPrefix
+        });
+        lastUserIdx++;
+      }
+
+      if(lastUserIdx >= 0){
+        let tail = '';
+        if(!getRpgOn(conv)){
+          const nowStr = new Date().toLocaleString('zh-CN');
+          tail = '\n\n[当前时间] ' + nowStr;
+          if(gapMs && gapMs > TIME_GAP_THRESHOLD){
+            tail += '（距上次发言 ' + fmtGap(gapMs) + '）';
           }
         }
+        msgs[lastUserIdx] = {
+          role: 'user',
+          content: '【用户当前发言】\n' + msgs[lastUserIdx].content + tail
+        };
       }
       messages = msgs;
     }
