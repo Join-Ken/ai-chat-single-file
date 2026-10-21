@@ -24,8 +24,8 @@
 
 | 版本 | 網址 | 說明 |
 |---|---|---|
-| 基礎版 | https://Join-Ken.github.io/ai-chat-single-file/ | 通用 AI 聊天，支援記憶、摘要、RAG、聯網 |
-| RPG 版 | https://Join-Ken.github.io/ai-chat-single-file/rpg/ | 在基礎版之上加了 RPG 模式、設定庫、狀態卡 |
+| 聊天版 | https://Join-Ken.github.io/ai-chat-single-file/ | 通用 AI 聊天，支援記憶、摘要、RAG、聯網 |
+| RPG版 | https://Join-Ken.github.io/ai-chat-single-file/rpg/ | 加了 RPG 模式、設定庫（聊天版為檔案庫）、狀態卡 |
 
 兩個版本**資料完全隔離**：各自的對話、記憶、設定不會互相干擾，可以同時使用。
 
