@@ -942,7 +942,8 @@ function processStateTags(text, conv){
 
     // ② 再试大白话格式：key: value 每行一条
     const obj = {};
-    const lines = raw.split(/\r?\n/);
+    const raw2 = String(raw).replace(/[ \t]+(?=[a-z_][a-z0-9_]*\s*[:：=])/g, '\n');
+    const lines = raw2.split(/\r?\n/);
     for(const ln of lines){
       const m = ln.match(/^\s*[-*]?\s*([A-Za-z_\u4e00-\u9fa5][\w\u4e00-\u9fa5]*)\s*[:：=]\s*(.*)$/);
       if(!m) continue;
@@ -1812,6 +1813,25 @@ function buildStableSystem(cfg, conv, memWarn, loreWarn){
       + '- 跨对话稳定的用户偏好、身份、核心约定、世界级规则 → 记忆 [MEMORY_*]\n'
       + '- 不需要每轮知道、命中才注入的背景细节（人物关系、地点常驻与规矩、势力制度、物种设定、特殊物品、重大事件）→ 设定库 [LORE_*]\n'
       + '- 拿不准 → 设定库';
+
+    sys += '\n\n【状态卡强制指令】\n'
+      + '状态卡用于记录当前场景和会变的数值，每一轮都必须检查。这是强制要求，不是可选。\n'
+      + '判断规则：\n'
+      + '- location 和上一轮不同（玩家移动、场景切换、走到新地方）→ 必须写 location。\n'
+      + '- present 和上一轮不同（有人来、有人走、人数变化）→ 必须写 present。没人在场写 []。\n'
+      + '- hp / mp / gold / day / date / items 任一数值变化 → 必须写对应字段。\n'
+      + '- 没变化的字段不要写。\n'
+      + '格式（每轮最多一个 [STATE]，放在回复最末尾，独占一段）：\n'
+      + '[STATE]{"location":"当前地点","present":["人物1","人物2"]}[/STATE]\n'
+      + '混合字段示例：\n'
+      + '[STATE]{"location":"酒馆","present":["卡尔"],"hp":18,"day":2}[/STATE]\n'
+      + '硬性要求：\n'
+      + '- 必须是合法 JSON（双引号、逗号分隔、数组用方括号）。\n'
+      + '- location 是字符串，present 是字符串数组。\n'
+      + '- 必须带 [/STATE] 结束标签。\n'
+      + '- 不写这一行 = 状态卡不更新 = 任务失败。\n'
+      + '- 即使你只想描写场景，只要场景和上一轮不同，也必须写 [STATE]。\n'
+      + '- 不得以「玩家没明确说移动」为理由跳过；你的描写本身即代表场景已变。\n';
 
     sys += '\n\n【时间推进】\n'
       + 'state.day 是内部计时（数字），state.date 是对外纪年（字符串，按你的世界观编，如「公历8911年3月」「弑神历323年冬」），两者同步推进。\n'
