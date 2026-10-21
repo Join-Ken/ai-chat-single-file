@@ -923,20 +923,78 @@ function processMemoryTags(text, conv){
 /* ============ 状态标签 ============ */
 function processStateTags(text, conv){
   let changed = false;
-  text = text.replace(/\[STATE\]([\s\S]*?)\[\/STATE\]/g, (m, json) => {
+  const notices = [];
+
+  const applyBody = (body) => {
+    const raw = String(body || '').trim();
+    if(!raw) return;
+    const cur = (conv.state && typeof conv.state === 'object') ? conv.state : {};
+
+    // ① 先试标准 JSON（AI 偶尔会写对）
     try{
-      const obj = JSON.parse(json.trim());
+      const obj = JSON.parse(raw);
       if(obj && typeof obj === 'object' && !Array.isArray(obj)){
-        const cur = (conv.state && typeof conv.state === 'object') ? conv.state : {};
         conv.state = Object.assign({}, cur, obj);
         changed = true;
+        return;
       }
-    }catch(e){
-      console.warn('STATE 解析失败：', e, json);
+    }catch(e){}
+
+    // ② 再试大白话格式：key: value 每行一条
+    const obj = {};
+    const lines = raw.split(/\r?\n/);
+    for(const ln of lines){
+      const m = ln.match(/^\s*[-*]?\s*([A-Za-z_\u4e00-\u9fa5][\w\u4e00-\u9fa5]*)\s*[:：=]\s*(.*)$/);
+      if(!m) continue;
+      const k = m[1].trim();
+      let v = m[2].trim();
+      const low = v.toLowerCase();
+      if(v === '' || v === '无' || v === '空' || v === '没有' || low === 'none' || low === 'null' || low === 'n/a'){
+        v = (k === 'present' || k === 'items') ? [] : '';
+      }else if(/^-?\d+(\.\d+)?$/.test(v)){
+        v = parseFloat(v);
+      }else if(/^\[.*\]$/.test(v) || /^\{.*\}$/.test(v)){
+        try{ v = JSON.parse(v); }catch(e){}
+      }else if(/[,，、]/.test(v)){
+        v = v.split(/[,，、]/).map(x => x.trim()).filter(Boolean);
+      }
+      if(k) obj[k] = v;
     }
+
+    if(Object.keys(obj).length){
+      ['present', 'items'].forEach(key => {
+        if(key in obj){
+          let v = obj[key];
+          if(v == null || v === ''){ obj[key] = []; }
+          else if(Array.isArray(v)){ obj[key] = v.filter(Boolean); }
+          else if(typeof v === 'string'){
+            const s = v.trim().replace(/^[（(【\[]+|[)）】\]]+$/g, '').trim();
+            if(!s || /^(无|无人|空|空无|没有|none|null|n\/a)$/i.test(s)){ obj[key] = []; }
+            else if(/[,，、]/.test(s)){ obj[key] = s.split(/[,，、]/).map(x => x.trim()).filter(Boolean); }
+            else { obj[key] = [s]; }
+          }else{ obj[key] = [String(v)]; }
+        }
+      });
+      conv.state = Object.assign({}, cur, obj);
+      changed = true;
+    }else{
+      notices.push('⚠️ [STATE] 内容无法解析，状态未更新');
+    }
+  };
+
+  // 先处理有 [/STATE] 闭合的
+  text = text.replace(/\[STATE\]([\s\S]*?)\[\/STATE\]/gi, (m, body) => {
+    applyBody(body);
     return '';
   });
-  return { text: text.trim(), changed };
+
+  // 再处理没闭合的：遇到分隔线、空行或结尾就停
+  text = text.replace(/\[STATE\][ \t]*\r?\n?([\s\S]*?)(?=\n\s*(?:——|—|---|___|\*\*\*)|\n\s*\n|$)/gi, (m, body) => {
+    applyBody(body);
+    return '';
+  });
+
+  return { text: text.trim(), changed, notices };
 }
 
 function updateStateMini(){
@@ -1037,6 +1095,7 @@ const DEFAULT_RPG_PROMPT = [
 '   [STATE]{"hp":18,"maxHp":30,"location":"酒馆","present":["掌柜","神秘剑客"],"items":["长剑","药水x2"],"day":15,"date":"弑神历323年冬"}[/STATE]',
 '   只写有变化的字段，没变化的字段不要写。数值用数字，地点用字符串，在场角色 present 用字符串数组。',
 '   每次场景切换或人物进出时，务必更新 location 和 present。',
+'   只要 location 或 present 的实际值和上一次不同（哪怕只是走进另一个房间），就必须写；不能因为只是「描写」就不写。',
 '   day 是内部计时（数字），date 是对外纪年（字符串，按你的世界观编，如「公历8911年3月」「弑神历323年冬」），两者同步推进。',
 '4. 重大决定（生死、结盟、背叛、感情线）只以选项呈现，不要替玩家做决定。',
 '5. 玩家可自由输入任意行动，必须在世界观内合理响应，不得以「不在选项中」拒绝。',
@@ -1063,7 +1122,7 @@ function switchRpgTab(tab){
   });
   try{ localStorage.setItem(RPG_TAB_KEY, tab); }catch(e){}
   if(tab === 'lore') renderLore();
-  if(tab === 'state') renderStatePanel();
+  if(tab === 'state'){ renderStatePanel(); renderSceneBar(); }
 }
 function initRpgTabs(){
   document.querySelectorAll('#rpgSubTabs button').forEach(b => {
@@ -1409,27 +1468,31 @@ const LORE_CASCADE_CHARS = 3000;
 function collectLoreHits(conv, query){
   const lore = getLoreOf(conv);
   if(!lore.length) return [];
-  let scan = String(query || '').toLowerCase();
-  if(conv && conv.summary) scan += ' ' + conv.summary.toLowerCase();
+
+  const strongScan = String(query || '').toLowerCase();
   if(conv && conv.state && typeof conv.state === 'object'){
-    if(conv.state.location) scan += ' ' + String(conv.state.location).toLowerCase();
+    if(conv.state.location) strongScan += ' ' + String(conv.state.location).toLowerCase();
     if(Array.isArray(conv.state.present)){
-      scan += ' ' + conv.state.present.map(x => String(x).toLowerCase()).join(' ');
+      strongScan += ' ' + conv.state.present.map(x => String(x).toLowerCase()).join(' ');
     }
   }
   if(conv && conv.messages){
     let n = 0;
     for(let i = conv.messages.length - 1; i >= 0 && n < 3; i--){
       const m = conv.messages[i];
-      if(m.role === 'user' && m.content){ scan += ' ' + m.content.toLowerCase(); n++; }
+      if(m.role === 'user' && m.content){ strongScan += ' ' + m.content.toLowerCase(); n++; }
     }
   }
+
+  const weakScan = (conv && conv.summary) ? (' ' + conv.summary.toLowerCase()) : '';
 
   const hitKeys = new Set();
   const hits = [];
 
   for(const it of lore){
     if(it.enabled === false) continue;
+    const cat = getCatOf(it);
+    const scan = (cat === 'character') ? (strongScan + weakScan) : strongScan;
     for(const kw of (it.keywords || [])){
       if(kw && scan.includes(kw.toLowerCase())){
         hits.push(it); hitKeys.add(it.key); break;
@@ -1545,7 +1608,7 @@ function processLoreTags(text, conv){
 
 function stripRpgTags(text){
   let t = String(text || '');
-  t = t.replace(/\[STATE\][\s\S]*?\[\/STATE\]/g, '');
+  t = t.replace(/\[STATE\][\s\S]*?\[\/STATE\]/gi, '');
   t = t.replace(/\[LORE_ADD\][\s\S]*?\[\/LORE_ADD\]/g, '');
   t = t.replace(/\[LORE_UPDATE\][\s\S]*?\[\/LORE_UPDATE\]/g, '');
   t = t.replace(/\[LORE_DELETE\][\s\S]*?\[\/LORE_DELETE\]/g, '');
@@ -2854,11 +2917,12 @@ async function runCompletion(conv, overrideMessages, gapMs){
 
     let finalText = placeholder.content || '';
     let stChanged = false, lrChanged = false;
-    let lrNotices = [];
+    let stNotices = [], lrNotices = [];
     if(getRpgOn(conv)){
       const st = processStateTags(finalText, conv);
       finalText = st.text;
       stChanged = st.changed;
+      stNotices = st.notices || [];
       const lr = processLoreTags(finalText, conv);
       finalText = lr.text;
       lrChanged = lr.changed;
@@ -2884,6 +2948,7 @@ async function runCompletion(conv, overrideMessages, gapMs){
 
     const noticeParts = [];
     if(!finalText && (mr.changed || stChanged || lrChanged)) noticeParts.push('✅ 已更新状态/记忆/设定');
+    if(stNotices.length) noticeParts.push(stNotices.join('；'));
     if(lrNotices.length) noticeParts.push(lrNotices.join('；'));
     if(noticeParts.length) placeholder.notice = noticeParts.join('；');
 
