@@ -125,6 +125,20 @@
   .lore-add input,.lore-add textarea{width:100%;padding:4px 6px;border:1px solid #d8dbe0;border-radius:5px;font:inherit;font-size:12px;background:#fff;}
   .lore-add textarea{resize:vertical;min-height:44px;}
   .lore-add button{padding:5px 10px;border-radius:6px;border:1px solid #bcd7ff;background:var(--primary-weak);font-size:12.5px;justify-self:start;}
+  .lore-item.editing{border-color:#5b3fa8;background:#faf8ff;box-shadow:0 2px 10px rgba(91,63,168,.08);}
+  .lore-edit{display:grid;gap:6px;}
+  .le-row{display:grid;grid-template-columns:52px 1fr;align-items:center;gap:6px;font-size:12.5px;}
+  .le-row-top{align-items:start;}
+  .le-k{color:#2d6a4f;font-weight:600;font-size:12px;}
+  .le-row select,.le-row input,.le-row textarea{width:100%;padding:4px 6px;border:1px solid #d8dbe0;border-radius:5px;font:inherit;font-size:12.5px;background:#fff;color:var(--text);}
+  .le-row select:focus,.le-row input:focus,.le-row textarea:focus{outline:none;border-color:#5b3fa8;}
+  .le-row textarea{resize:vertical;min-height:76px;line-height:1.55;}
+  .le-actions{display:flex;gap:6px;justify-content:flex-end;}
+  .le-actions button{padding:5px 14px;border-radius:6px;font-size:12.5px;cursor:pointer;font-family:inherit;}
+  .le-actions .le-save{border:1px solid #bcd7ff;background:var(--primary-weak);color:#0b4ea2;font-weight:600;}
+  .le-actions .le-save:hover{background:#dbe9ff;}
+  .le-actions .le-cancel{border:1px solid #d8dbe0;background:#fff;color:#374151;}
+  .le-actions .le-cancel:hover{background:#f3f4f6;}
   .lore-cat{font-size:10.5px;padding:1px 6px;border-radius:3px;cursor:pointer;border:none;font-family:inherit;font-weight:600;}
   .lore-cat[data-cat="character"]{background:#ffe8dd;color:#b4560c;}
   .lore-cat[data-cat="location"]{background:#e0f2ff;color:#0b4ea2;}
@@ -1330,14 +1344,41 @@ function ensureLoreNums(lore){
 }
 
 let loreTab = 'character';
+let editingLoreKey = null;
+let loreEditFocusPending = false;
+
+function loreEditForm(it){
+  const cat = getCatOf(it);
+  const opts = LORE_CATS.map(c =>
+    '<option value="' + c.k + '"' + (c.k === cat ? ' selected' : '') + '>' + escapeHtml(c.label) + '</option>'
+  ).join('');
+  const kw = (it.keywords || []).join('，');
+  return '<div class="lore-item editing">'
+    + '<div class="lore-edit">'
+    +   '<div class="le-row"><span class="le-k">分类</span><select class="le-cat">' + opts + '</select></div>'
+    +   '<div class="le-row"><span class="le-k">名称</span><input class="le-name" value="' + escapeHtml(it.name || '') + '"></div>'
+    +   '<div class="le-row"><span class="le-k">关键词</span><input class="le-kw" value="' + escapeHtml(kw) + '" placeholder="逗号分隔，留空则用名称"></div>'
+    +   '<div class="le-row le-row-top"><span class="le-k">内容</span><textarea class="le-content">' + escapeHtml(it.content || '') + '</textarea></div>'
+    +   '<div class="le-actions">'
+    +     '<button type="button" class="le-cancel" data-lact="cancel">取消</button>'
+    +     '<button type="button" class="le-save" data-lact="save">保存</button>'
+    +   '</div>'
+    + '</div>'
+    + '</div>';
+}
 
 function renderLore(){
   const body = document.getElementById('loreBody');
   if(!body) return;
   const conv = allConvs[currentId];
   const lore = getLoreOf(conv);
-  if(ensureLoreNums(lore)){
-    try{ saveLoreOf(conv, lore); }catch(e){}
+
+  let fixed = ensureLoreNums(lore);
+  for(const it of lore){ if(!it.key){ it.key = uid('l'); fixed = true; } }
+  if(fixed){ try{ saveLoreOf(conv, lore); }catch(e){} }
+
+  if(editingLoreKey && !lore.some(x => x.key === editingLoreKey)){
+    editingLoreKey = null;
   }
 
   const valOf = id => { const el = document.getElementById(id); return el ? el.value : ''; };
@@ -1369,6 +1410,7 @@ function renderLore(){
   }else{
     listHtml = items.map(x => {
       const it = x.it, i = x.idx;
+      if(editingLoreKey && it.key === editingLoreKey) return loreEditForm(it);
       const cat = getCatOf(it);
       const num = (typeof it.num === 'number') ? it.num : (i + 1);
       return '<div class="lore-item' + (it.enabled === false ? ' disabled' : '') + '">'
@@ -1405,19 +1447,53 @@ function renderLore(){
   body.querySelectorAll('.lore-tabs button').forEach(btn => {
     btn.onclick = () => {
       loreTab = btn.dataset.lcat;
+      editingLoreKey = null;
+      loreEditFocusPending = false;
       renderLore();
     };
   });
 
   body.querySelectorAll('[data-lact]').forEach(btn => {
     btn.onclick = () => {
-      const i = parseInt(btn.dataset.li, 10);
       const c = allConvs[currentId];
       const arr = getLoreOf(c).slice();
-      if(!arr[i]) return;
       const act = btn.dataset.lact;
+
+      if(act === 'cancel'){
+        editingLoreKey = null;
+        loreEditFocusPending = false;
+        renderLore();
+        return;
+      }
+
+      if(act === 'save'){
+        const idx = editingLoreKey ? arr.findIndex(x => x.key === editingLoreKey) : -1;
+        if(idx < 0){ editingLoreKey = null; renderLore(); return; }
+        const root = btn.closest('.lore-item') || body;
+        const catSel = root.querySelector('.le-cat');
+        const nameInp = root.querySelector('.le-name');
+        const kwInp = root.querySelector('.le-kw');
+        const contentInp = root.querySelector('.le-content');
+        const name = nameInp ? nameInp.value.trim() : '';
+        const content = contentInp ? contentInp.value.trim() : '';
+        if(!name || !content){ alert('名称和内容不能为空'); return; }
+        const kws = kwInp ? kwInp.value.split(/[,，、]/).map(s => s.trim()).filter(Boolean) : [];
+        arr[idx].cat = catSel ? catSel.value : getCatOf(arr[idx]);
+        arr[idx].name = name;
+        arr[idx].keywords = kws.length ? kws : [name];
+        arr[idx].content = content;
+        saveLoreOf(c, arr);
+        editingLoreKey = null;
+        loreEditFocusPending = false;
+        renderLore();
+        return;
+      }
+
+      const i = parseInt(btn.dataset.li, 10);
+      if(!arr[i]) return;
       if(act === 'del'){
         if(!confirm('删除设定「' + arr[i].name + '」？')) return;
+        if(arr[i].key === editingLoreKey){ editingLoreKey = null; loreEditFocusPending = false; }
         arr.splice(i, 1);
         saveLoreOf(c, arr);
       }else if(act === 'toggle'){
@@ -1426,24 +1502,34 @@ function renderLore(){
       }else if(act === 'cat'){
         const order = LORE_CATS.map(x => x.k);
         const cur = getCatOf(arr[i]);
-        const idx = order.indexOf(cur);
-        arr[i].cat = order[idx >= 0 ? (idx + 1) % order.length : 0];
+        const idx2 = order.indexOf(cur);
+        arr[i].cat = order[idx2 >= 0 ? (idx2 + 1) % order.length : 0];
         saveLoreOf(c, arr);
       }else if(act === 'edit'){
-        const name = prompt('名称：', arr[i].name);
-        if(name === null) return;
-        const keywords = prompt('关键词（逗号分隔）：', (arr[i].keywords || []).join(','));
-        if(keywords === null) return;
-        const content = prompt('内容：', arr[i].content);
-        if(content === null) return;
-        arr[i].name = name.trim() || arr[i].name;
-        arr[i].keywords = keywords.split(/[,，]/).map(s => s.trim()).filter(Boolean);
-        arr[i].content = content.trim();
-        saveLoreOf(c, arr);
+        editingLoreKey = arr[i].key;
+        loreEditFocusPending = true;
       }
       renderLore();
     };
   });
+
+  const editBox = body.querySelector('.lore-item.editing');
+  if(editBox){
+    if(loreEditFocusPending){
+      loreEditFocusPending = false;
+      const nameEl = editBox.querySelector('.le-name');
+      if(nameEl){ try{ nameEl.focus({ preventScroll: true }); }catch(e){ try{ nameEl.focus(); }catch(e2){} } }
+    }
+    editBox.querySelectorAll('input, textarea').forEach(el => {
+      el.addEventListener('keydown', ev => {
+        if((ev.ctrlKey || ev.metaKey) && ev.key === 'Enter'){
+          ev.preventDefault();
+          const sv = editBox.querySelector('[data-lact="save"]');
+          if(sv) sv.click();
+        }
+      });
+    });
+  }
 
   const addBtn = document.getElementById('loreAddBtn');
   if(addBtn) addBtn.onclick = () => {
