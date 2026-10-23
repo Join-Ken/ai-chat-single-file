@@ -1967,6 +1967,17 @@ function buildDynamicNote(conv, searchNote, ragNote, gapMs){
       if(present.length) s += '在场角色：' + present.join('、') + '\n';
       s += '描写和对话必须与当前场景一致；场景变化时用 [STATE] 更新 location / present。';
       parts.push(s);
+    const rumors = st.rumors ? String(st.rumors) : '';
+    const attention = st.attention ? String(st.attention) : '';
+    const witnesses = st.witnesses ? String(st.witnesses) : '';
+    if(rumors || attention || witnesses){
+      let r = '【傳聞與關注】\n';
+      if(rumors) r += '流傳：' + rumors + '\n';
+      if(attention) r += '關注度：' + attention + '\n';
+      if(witnesses) r += '目擊：' + witnesses + '\n';
+      r += '以上是本輪之前累積的傳聞與機構關注。描寫時要與此一致；有新的目擊、上報、立案、傳播，用 [STATE] 更新這三個字段。';
+      parts.push(r);
+    }
     }
   }
 
