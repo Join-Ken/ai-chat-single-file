@@ -10,7 +10,7 @@
 >
 > 👉 **[世界建立指南（WORLD_GUIDE.md）](WORLD_GUIDE.md)**
 >
-> 這份文件是**給 AI 讀的**，你不用看懂。把整份內容丟給 AI（Claude / ChatGPT / DeepSeek 都行），
+> 這份文件是**給 AI 讀的**，你不用看懂。把整份內容連同RPG本體一起丟給 AI（Claude / ChatGPT / DeepSeek 都行），
 > 再告訴它你想要什麼世界，它會產出一份 `.json` 世界包。
 > 到 **RPG 版**側欄「導入 (.json)」載入，選中對話，直接輸入你的第一步行動就能開玩。
 
