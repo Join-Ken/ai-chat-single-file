@@ -1035,7 +1035,7 @@ function updateStateMini(){
   if(st.date) parts.push('🗓 ' + st.date);
   else if(st.day !== undefined) parts.push('第' + st.day + '天');
   if(parts.length < 7){
-    const known = new Set(['hp','maxHp','mp','maxMp','level','location','gold','present','day','date']);
+    const known = new Set(['hp','maxHp','mp','maxMp','level','location','gold','present','day','date','rumors','attention','witnesses']);
     const extra = Object.keys(st).filter(k => !known.has(k) && (typeof st[k] === 'number' || typeof st[k] === 'string'));
     for(const k of extra.slice(0, 3)) parts.push(k + ' ' + st[k]);
   }
@@ -1967,6 +1967,7 @@ function buildDynamicNote(conv, searchNote, ragNote, gapMs){
       if(present.length) s += '在场角色：' + present.join('、') + '\n';
       s += '描写和对话必须与当前场景一致；场景变化时用 [STATE] 更新 location / present。';
       parts.push(s);
+    }
     const rumors = st.rumors ? String(st.rumors) : '';
     const attention = st.attention ? String(st.attention) : '';
     const witnesses = st.witnesses ? String(st.witnesses) : '';
@@ -1977,7 +1978,6 @@ function buildDynamicNote(conv, searchNote, ragNote, gapMs){
       if(witnesses) r += '目擊：' + witnesses + '\n';
       r += '以上是本輪之前累積的傳聞與機構關注。描寫時要與此一致；有新的目擊、上報、立案、傳播，用 [STATE] 更新這三個字段。';
       parts.push(r);
-    }
     }
   }
 
