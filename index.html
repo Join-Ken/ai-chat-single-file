@@ -258,7 +258,7 @@
   </details>
 
   <details id="memoryPanel">
-    <summary>记忆库（AI 可自动修改，也可手动编辑）<span id="memCount" class="mem-count">存储 —</span></summary>
+    <summary>记忆库（AI 可自动修改，也可手动编辑）<span id="memCount" class="mem-count">记录 —</span></summary>
     <div class="mem-body" id="memBody"></div>
   </details>
 
@@ -748,29 +748,36 @@ function saveMemoryOf(conv, mem){
   }
 }
 
-/* 浏览器存储用量：MB / MB（上限）。navigator.storage.estimate() 返回字节。 */
+/* 聊天记录已用容量 + 浏览器存储配额。 */
 async function updateMemUsage(){
   const el = document.getElementById('memCount');
   if(!el) return;
   const fmt = n => {
-    if(!n) return '0 MB';
-    const mb = n / 1048576;
-    if(mb >= 1024) return (mb / 1024).toFixed(1) + ' GB';
-    if(mb >= 10) return mb.toFixed(0) + ' MB';
-    return mb.toFixed(1) + ' MB';
+    if(!n) return '0 KB';
+    const kb = n / 1024;
+    if(kb >= 1024) return (kb / 1024).toFixed(1) + ' MB';
+    if(kb >= 100) return Math.round(kb) + ' KB';
+    if(kb >= 10) return kb.toFixed(0) + ' KB';
+    return kb.toFixed(1) + ' KB';
   };
-  let used = 0, quota = 0, ok = false;
+  let used = 0, convCount = 0, msgCount = 0;
+  const enc = new TextEncoder();
+  for(const c of Object.values(allConvs)){
+    if(!c) continue;
+    try{ used += enc.encode(JSON.stringify(c)).length; }catch(e){}
+    convCount++;
+    msgCount += Array.isArray(c.messages) ? c.messages.length : 0;
+  }
+  let quota = 0;
   try{
     if(navigator.storage && navigator.storage.estimate){
       const est = await navigator.storage.estimate();
-      used = est.usage || 0;
       quota = est.quota || 0;
-      ok = true;
     }
   }catch(e){}
-  if(!ok){ el.textContent = '存儲 瀏覽器未提供'; el.title = '当前浏览器不提供存储用量信息'; return; }
-  el.textContent = '存儲 ' + fmt(used) + ' / ' + (quota ? fmt(quota) : '?');
-  el.title = '浏览器已为本页分配 ' + (quota ? fmt(quota) : '未知') + '，当前已用 ' + fmt(used);
+  el.textContent = '記錄 ' + fmt(used) + (quota ? ' / ' + fmt(quota) : '');
+  el.title = '聊天记录：' + fmt(used) + '（' + convCount + ' 个对话，' + msgCount + ' 条消息）'
+    + (quota ? '\n浏览器配额：' + fmt(quota) : '');
 }
 
 function renderMemory(){
