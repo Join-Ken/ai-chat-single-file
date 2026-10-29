@@ -42,6 +42,9 @@
   #statePopup .st-row:last-child{border-bottom:none;}
   #statePopup .st-k{color:#6b7280;flex:0 0 auto;font-weight:600;}
   #statePopup .st-v{color:#1f2328;flex:1;word-break:break-word;}
+  #panelTabs{display:flex;gap:4px;padding:6px 10px;border-bottom:1px solid var(--border);background:var(--panel);flex:0 0 auto;overflow-x:auto;}
+  #panelTabs button{flex:0 0 auto;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;font-size:12px;color:#4b5563;cursor:pointer;white-space:nowrap;}
+  #panelTabs button.on{background:var(--primary-weak);border-color:#bcd7ff;color:#0b4ea2;font-weight:600;}
   #config{border-bottom:1px solid var(--border);background:var(--panel);padding:0 10px;}
   #config summary{cursor:pointer;padding:6px 0;font-size:12.5px;color:var(--muted);list-style:none;}
   #config summary::-webkit-details-marker{display:none;}
@@ -158,6 +161,49 @@
   body.rpg-off .rpg-subpage[data-rpage="lore"],
   body.rpg-off .rpg-subpage[data-rpage="state"]{display:none !important;}
   body.rpg-off .rpg-subpage[data-rpage="prompt"]{display:block !important;}
+  /* 档案库面板 */
+  #archivePanel{border-bottom:1px solid var(--border);background:#f5fbff;padding:0 10px;}
+  #archivePanel summary{cursor:pointer;padding:6px 0;font-size:12.5px;color:#1e6a8a;list-style:none;font-weight:600;}
+  #archivePanel summary::-webkit-details-marker{display:none;}
+  #archivePanel summary::before{content:'▸ ';}
+  #archivePanel[open] summary::before{content:'▾ ';}
+  .archive-body{padding-bottom:8px;display:grid;gap:5px;max-height:55vh;overflow-y:auto;}
+  .archive-topbar{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:4px 0 6px;}
+  .archive-stats{font-size:12.5px;color:#1e6a8a;font-weight:600;}
+  .archive-migrate{padding:4px 10px;border-radius:6px;border:1px solid #b8d9e8;background:#fff;font-size:12px;color:#1e6a8a;}
+  .archive-migrate:hover{background:#e6f4fa;}
+  .archive-mode-note{font-size:12px;color:#8a5a00;background:#fff8e1;border:1px solid #f0d998;border-radius:6px;padding:5px 8px;line-height:1.5;}
+  .archive-section{display:flex;flex-direction:column;gap:5px;padding:6px 0;border-top:1px solid #e0eef5;}
+  .archive-section:first-of-type{border-top:none;padding-top:0;}
+  .archive-section.off .archive-section-title{opacity:.6;}
+  .archive-section-head{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+  .archive-section-title{font-size:12.5px;color:#1e6a8a;font-weight:600;}
+  .archive-section-count{font-size:11px;font-weight:400;color:#6b7280;background:#e6f4fa;padding:1px 6px;border-radius:8px;margin-left:4px;}
+  .archive-switch{font-size:11.5px;color:#4b5563;display:flex;align-items:center;gap:4px;cursor:pointer;}
+  .archive-switch input{cursor:pointer;margin:0;}
+  .archive-empty{font-size:12.5px;color:#9ca3af;padding:6px 4px;text-align:center;}
+  .archive-item{display:flex;flex-direction:column;gap:3px;font-size:12.5px;background:#fff;border:1px solid #b8d9e8;border-radius:6px;padding:5px 8px;}
+  .archive-item.disabled{opacity:.55;}
+  .archive-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .archive-num{font-size:11px;font-weight:600;color:#1e6a8a;background:#e6f4fa;padding:1px 6px;border-radius:3px;flex:0 0 auto;}
+  .archive-name{font-weight:600;color:#1f2328;}
+  .archive-tag{font-size:10.5px;padding:1px 5px;border-radius:3px;background:#e6f4fa;color:#1e6a8a;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .archive-actions{margin-left:auto;display:flex;gap:2px;}
+  .archive-actions button{border:none;background:transparent;color:#6b7280;cursor:pointer;font-size:12px;padding:1px 4px;border-radius:3px;}
+  .archive-actions button:hover{background:#eef0f3;color:var(--text);}
+  .archive-content{color:#4b5563;word-break:break-word;white-space:pre-wrap;}
+  .archive-edit{display:grid;gap:4px;padding:6px 8px;background:#f8fbfd;border:1px dashed #b8d9e8;border-radius:6px;margin-top:2px;}
+  .archive-edit input,.archive-edit textarea{width:100%;padding:4px 6px;border:1px solid #d8dbe0;border-radius:5px;font:inherit;font-size:12px;background:#fff;}
+  .archive-edit textarea{resize:vertical;min-height:50px;}
+  .archive-edit-actions{display:flex;gap:6px;}
+  .archive-edit-actions button{padding:4px 10px;border-radius:5px;font-size:12px;}
+  .archive-edit-actions button[data-act="save"]{border:1px solid #bcd7ff;background:var(--primary-weak);color:#0b4ea2;font-weight:600;}
+  .archive-edit-actions button[data-act="cancel"]{border:1px solid var(--border);background:#fff;color:#4b5563;}
+  .archive-add{display:grid;gap:4px;margin-top:6px;padding:8px;background:#fff;border:1px dashed #b8d9e8;border-radius:6px;}
+  .archive-add-hint{font-size:11.5px;color:#1e6a8a;font-weight:600;}
+  .archive-add input,.archive-add textarea{width:100%;padding:4px 6px;border:1px solid #d8dbe0;border-radius:5px;font:inherit;font-size:12px;background:#fff;}
+  .archive-add textarea{resize:vertical;min-height:44px;}
+  .archive-add-btn{padding:5px 10px;border-radius:6px;border:1px solid #bcd7ff;background:var(--primary-weak);font-size:12.5px;justify-self:start;}
   #chatWrap{position:relative;flex:1;min-height:0;display:flex;}
   #chat{flex:1;overflow-y:auto;padding:14px 12px 8px;display:flex;flex-direction:column;gap:10px;}
   .empty{margin:auto;color:#9ca3af;font-size:13px;}
@@ -293,6 +339,13 @@
     <button id="clearBtn" class="icon-btn" title="清空当前对话">🧹</button>
   </div>
 
+  <div id="panelTabs">
+    <button type="button" data-panel="config">API</button>
+    <button type="button" data-panel="memoryPanel">记忆</button>
+    <button type="button" data-panel="archivePanel">档案</button>
+    <button type="button" data-panel="rpgPanel">RPG</button>
+  </div>
+
   <details id="config">
     <summary>API 设置</summary>
     <div class="cfg-body">
@@ -307,8 +360,13 @@
   </details>
 
   <details id="memoryPanel">
-    <summary>记忆库（AI 可自动修改，也可手动编辑）<span id="memCount" class="mem-count">存儲 —</span></summary>
+    <summary>记忆库（AI 可自动修改，也可手动编辑）<span id="memCount" class="mem-count">記錄 —</span></summary>
     <div class="mem-body" id="memBody"></div>
+  </details>
+
+  <details id="archivePanel">
+    <summary>档案库（全局 + 独立；RPG 开启时只管理，不注入）</summary>
+    <div class="archive-body" id="archiveBody"></div>
   </details>
 
   <details id="rpgPanel">
@@ -821,24 +879,31 @@ async function updateMemUsage(){
   const el = document.getElementById('memCount');
   if(!el) return;
   const fmt = n => {
-    if(!n) return '0 MB';
-    const mb = n / 1048576;
-    if(mb >= 1024) return (mb / 1024).toFixed(1) + ' GB';
-    if(mb >= 10) return mb.toFixed(0) + ' MB';
-    return mb.toFixed(1) + ' MB';
+    if(!n) return '0 KB';
+    const kb = n / 1024;
+    if(kb >= 1024) return (kb / 1024).toFixed(1) + ' MB';
+    if(kb >= 100) return Math.round(kb) + ' KB';
+    if(kb >= 10) return kb.toFixed(0) + ' KB';
+    return kb.toFixed(1) + ' KB';
   };
-  let used = 0, quota = 0, ok = false;
+  let used = 0, convCount = 0, msgCount = 0;
+  const enc = new TextEncoder();
+  for(const c of Object.values(allConvs)){
+    if(!c) continue;
+    try{ used += enc.encode(JSON.stringify(c)).length; }catch(e){}
+    convCount++;
+    msgCount += Array.isArray(c.messages) ? c.messages.length : 0;
+  }
+  let quota = 0;
   try{
     if(navigator.storage && navigator.storage.estimate){
       const est = await navigator.storage.estimate();
-      used = est.usage || 0;
       quota = est.quota || 0;
-      ok = true;
     }
   }catch(e){}
-  if(!ok){ el.textContent = '存儲 瀏覽器未提供'; el.title = '当前浏览器不提供存储用量信息'; return; }
-  el.textContent = '存儲 ' + fmt(used) + ' / ' + (quota ? fmt(quota) : '?');
-  el.title = '浏览器已为本页分配 ' + (quota ? fmt(quota) : '未知') + '，当前已用 ' + fmt(used);
+  el.textContent = '記錄 ' + fmt(used) + (quota ? ' / ' + fmt(quota) : '');
+  el.title = '聊天记录：' + fmt(used) + '（' + convCount + ' 个对话，' + msgCount + ' 条消息）'
+    + (quota ? '\n浏览器配额：' + fmt(quota) : '');
 }
 
 function renderMemory(){
@@ -934,6 +999,482 @@ function processMemoryTags(text, conv){
   return { text: text.trim(), changed: changed };
 }
 
+/* ===== 檔案庫 START（RPG 版，RPG 開啟時停用） ===== */
+const ARCHIVE_SOFT_LIMIT = 40;
+const ARCHIVE_INJECT_TOP_K = 4;
+const ARCHIVE_CONTENT_MAX = 800;
+const ARCHIVE_FULL_MAX = 2;
+const GLOBAL_ARCHIVE_KEY_RPG = 'chatGlobalArchives_RPG';
+
+function getGlobalArchives(){
+  try{
+    const arr = JSON.parse(localStorage.getItem(GLOBAL_ARCHIVE_KEY_RPG) || '[]');
+    return Array.isArray(arr) ? arr.map(normArchiveItem) : [];
+  }catch(e){ return []; }
+}
+function saveGlobalArchives(arr){
+  localStorage.setItem(GLOBAL_ARCHIVE_KEY_RPG, JSON.stringify(arr));
+}
+function getLocalArchives(conv){
+  if(!conv || !Array.isArray(conv.archives)) return [];
+  return conv.archives;
+}
+function saveArchivesOf(conv, archives){
+  if(!conv) return;
+  conv.archives = archives;
+  conv.updatedAt = Date.now();
+  try{ dbPut(conv).catch(() => {}); }catch(e){}
+}
+function normArchiveItem(x){
+  return {
+    key: x.key || uid('a'),
+    name: String(x.name || ''),
+    keywords: Array.isArray(x.keywords) ? x.keywords.map(s => String(s)) : [],
+    content: String(x.content || ''),
+    enabled: x.enabled !== false
+  };
+}
+function isGlobalOn(conv){ return !!(conv && conv.useGlobalArchive !== false); }
+function isLocalOn(conv){ return !!(conv && conv.useLocalArchive !== false); }
+function parseArchiveId(id){
+  const m = String(id || '').trim().match(/^([GI])(\d+)$/i);
+  if(!m) return null;
+  return { scope: m[1].toUpperCase() === 'G' ? 'global' : 'local', idx: parseInt(m[2], 10) - 1 };
+}
+function totalVisibleArchives(conv){
+  return (isGlobalOn(conv) ? getGlobalArchives().length : 0) + (isLocalOn(conv) ? getLocalArchives(conv).length : 0);
+}
+
+let archiveEditing = null;
+
+function renderArchives(){
+  const body = document.getElementById('archiveBody');
+  if(!body) return;
+  const conv = allConvs[currentId];
+  if(!conv) return;
+
+  const globals = getGlobalArchives();
+  const locals = getLocalArchives(conv);
+  const gOn = isGlobalOn(conv);
+  const lOn = isLocalOn(conv);
+
+  /* 保存添加区当前值 */
+  const oldAdds = {};
+  body.querySelectorAll('.archive-add').forEach(el => {
+    oldAdds[el.dataset.scope] = {
+      name: el.querySelector('.add-name').value,
+      kw: el.querySelector('.add-keywords').value,
+      content: el.querySelector('.add-content').value
+    };
+  });
+
+  /* 同步编辑区当前值 */
+  body.querySelectorAll('.archive-edit').forEach(el => {
+    if(!archiveEditing) return;
+    if(el.dataset.scope !== archiveEditing.scope || el.dataset.key !== archiveEditing.key) return;
+    archiveEditing.name = el.querySelector('.edit-name').value;
+    archiveEditing.keywords = el.querySelector('.edit-keywords').value;
+    archiveEditing.content = el.querySelector('.edit-content').value;
+  });
+
+  const sectionHtml = (scope, label, arr, on) => {
+    const prefix = scope === 'global' ? 'G' : 'I';
+    let items;
+    if(!arr.length){
+      items = '<div class="archive-empty">「' + label + '」还没有档案。</div>';
+    }else{
+      items = arr.map((it, i) => {
+        const num = prefix + (i + 1);
+        const editing = archiveEditing && archiveEditing.scope === scope && archiveEditing.key === it.key;
+        const dis = it.enabled === false;
+        let h = '<div class="archive-item' + (dis ? ' disabled' : '') + '" data-scope="' + scope + '" data-key="' + escapeHtml(it.key) + '">'
+          + '<div class="archive-head">'
+          + '<span class="archive-num">' + num + '</span>'
+          + '<span class="archive-name">' + escapeHtml(it.name) + '</span>'
+          + '<span class="archive-tag">' + escapeHtml((it.keywords || []).join('、')) + '</span>'
+          + '<span class="archive-actions">'
+          + '<button data-act="toggle" title="启用/禁用">' + (dis ? '○' : '●') + '</button>'
+          + '<button data-act="edit" title="编辑">✎</button>'
+          + '<button data-act="del" title="删除">×</button>'
+          + '</span>'
+          + '</div>'
+          + '<div class="archive-content">' + escapeHtml(it.content) + '</div>';
+        if(editing){
+          h += '<div class="archive-edit" data-scope="' + scope + '" data-key="' + escapeHtml(it.key) + '">'
+            + '<input class="edit-name" placeholder="名称" value="' + escapeHtml(archiveEditing.name) + '">'
+            + '<input class="edit-keywords" placeholder="关键词，逗号分隔" value="' + escapeHtml(archiveEditing.keywords) + '">'
+            + '<textarea class="edit-content" placeholder="内容" rows="3">' + escapeHtml(archiveEditing.content) + '</textarea>'
+            + '<div class="archive-edit-actions">'
+            + '<button data-act="save">保存</button>'
+            + '<button data-act="cancel">取消</button>'
+            + '</div>'
+            + '</div>';
+        }
+        h += '</div>';
+        return h;
+      }).join('');
+    }
+
+    const addCache = oldAdds[scope] || {};
+    const addHtml = on ? ('<div class="archive-add" data-scope="' + scope + '">'
+      + '<div class="archive-add-hint">添加到「' + label + '」</div>'
+      + '<input class="add-name" placeholder="名称" value="' + escapeHtml(addCache.name || '') + '">'
+      + '<input class="add-keywords" placeholder="触发关键词，逗号分隔" value="' + escapeHtml(addCache.kw || '') + '">'
+      + '<textarea class="add-content" placeholder="档案内容（命中时注入给 AI）" rows="2">' + escapeHtml(addCache.content || '') + '</textarea>'
+      + '<button class="archive-add-btn" type="button" data-scope="' + scope + '">添加档案</button>'
+      + '</div>') : '';
+
+    return '<div class="archive-section' + (on ? '' : ' off') + '">'
+      + '<div class="archive-section-head">'
+      + '<span class="archive-section-title">' + label + ' <span class="archive-section-count">' + arr.length + '</span></span>'
+      + '<label class="archive-switch"><input type="checkbox" class="archive-switch-cb" data-scope="' + scope + '"' + (on ? ' checked' : '') + '> 启用</label>'
+      + '</div>'
+      + (on ? (items + addHtml) : '<div class="archive-empty">已关闭，本对话不使用这个库。</div>')
+      + '</div>';
+  };
+
+  const migrateBtn = locals.length
+    ? '<button class="archive-migrate" type="button">把独立档案迁入全局</button>'
+    : '';
+
+  const rpgOn = getRpgOn(conv);
+  body.innerHTML = (rpgOn ? '<div class="archive-mode-note">RPG 模式开启时，档案库只供查看和手动管理；不会注入上下文，也不会写入新条目。</div>' : '')
+    + '<div class="archive-topbar">'
+    + '<span class="archive-stats">全局 ' + globals.length + ' / 独立 ' + locals.length + '</span>'
+    + migrateBtn
+    + '</div>'
+    + sectionHtml('global', '全局档案', globals, gOn)
+    + sectionHtml('local', '独立档案', locals, lOn);
+
+  /* 开关 */
+  body.querySelectorAll('.archive-switch-cb').forEach(cb => {
+    cb.onchange = () => {
+      if(cb.dataset.scope === 'global') conv.useGlobalArchive = cb.checked;
+      else conv.useLocalArchive = cb.checked;
+      conv.updatedAt = Date.now();
+      dbPut(conv).catch(() => {});
+      renderArchives();
+    };
+  });
+
+  /* 迁移按钮 */
+  const mBtn = body.querySelector('.archive-migrate');
+  if(mBtn) mBtn.onclick = migrateLocalToGlobal;
+
+  /* 档案上的三个按钮（toggle/edit/del） */
+  body.querySelectorAll('.archive-actions button').forEach(btn => {
+    btn.onclick = () => {
+      const item = btn.closest('.archive-item');
+      const scope = item.dataset.scope;
+      const key = item.dataset.key;
+      const arr = (scope === 'global' ? getGlobalArchives() : getLocalArchives(conv)).slice();
+      const idx = arr.findIndex(x => x.key === key);
+      if(idx < 0) return;
+      const act = btn.dataset.act;
+      if(act === 'del'){
+        if(!confirm('删除档案「' + arr[idx].name + '」？')) return;
+        arr.splice(idx, 1);
+        if(scope === 'global') saveGlobalArchives(arr);
+        else saveArchivesOf(conv, arr);
+        if(archiveEditing && archiveEditing.scope === scope && archiveEditing.key === key) archiveEditing = null;
+        renderArchives();
+      }else if(act === 'toggle'){
+        arr[idx].enabled = arr[idx].enabled === false ? true : false;
+        if(scope === 'global') saveGlobalArchives(arr);
+        else saveArchivesOf(conv, arr);
+        renderArchives();
+      }else if(act === 'edit'){
+        archiveEditing = {
+          scope: scope,
+          key: key,
+          name: arr[idx].name,
+          keywords: (arr[idx].keywords || []).join(','),
+          content: arr[idx].content
+        };
+        renderArchives();
+      }
+    };
+  });
+
+  /* 编辑区的保存/取消 */
+  body.querySelectorAll('.archive-edit-actions button').forEach(btn => {
+    btn.onclick = () => {
+      const editEl = btn.closest('.archive-edit');
+      const scope = editEl.dataset.scope;
+      const key = editEl.dataset.key;
+      const act = btn.dataset.act;
+      if(act === 'cancel'){
+        archiveEditing = null;
+        renderArchives();
+        return;
+      }
+      if(act === 'save'){
+        const newName = editEl.querySelector('.edit-name').value.trim();
+        const kwRaw = editEl.querySelector('.edit-keywords').value.trim();
+        const newContent = editEl.querySelector('.edit-content').value.trim();
+        if(!newName || !newContent){ alert('名称和内容不能为空'); return; }
+        const arr = (scope === 'global' ? getGlobalArchives() : getLocalArchives(conv)).slice();
+        const idx = arr.findIndex(x => x.key === key);
+        if(idx < 0) return;
+        const dup = arr.find((x, j) => j !== idx && x.name === newName);
+        if(dup){ alert('已有同名档案「' + newName + '」，请换个名称'); return; }
+        const newKeywords = kwRaw ? kwRaw.split(/[,，]/).map(s => s.trim()).filter(Boolean) : [newName];
+        arr[idx].name = newName;
+        arr[idx].keywords = newKeywords;
+        arr[idx].content = newContent;
+        if(scope === 'global') saveGlobalArchives(arr);
+        else saveArchivesOf(conv, arr);
+        archiveEditing = null;
+        renderArchives();
+      }
+    };
+  });
+
+  /* 添加按钮 */
+  body.querySelectorAll('.archive-add-btn').forEach(btn => {
+    btn.onclick = () => {
+      const scope = btn.dataset.scope;
+      const addEl = btn.closest('.archive-add');
+      const name = addEl.querySelector('.add-name').value.trim();
+      const kwRaw = addEl.querySelector('.add-keywords').value.trim();
+      const content = addEl.querySelector('.add-content').value.trim();
+      if(!name || !content){ alert('名称和内容不能为空'); return; }
+      const arr = (scope === 'global' ? getGlobalArchives() : getLocalArchives(conv)).slice();
+      if(arr.find(x => x.name === name)){
+        alert('已有同名档案「' + name + '」，请换个名称或先编辑旧档案');
+        return;
+      }
+      const keywords = kwRaw ? kwRaw.split(/[,，]/).map(s => s.trim()).filter(Boolean) : [name];
+      arr.push({ key: uid('a'), name: name, keywords: keywords, content: content, enabled: true });
+      if(scope === 'global') saveGlobalArchives(arr);
+      else saveArchivesOf(conv, arr);
+      renderArchives();
+    };
+  });
+
+  /* 编辑区实时同步到 archiveEditing，防重渲染丢内容 */
+  body.querySelectorAll('.archive-edit').forEach(el => {
+    if(!archiveEditing) return;
+    if(el.dataset.scope !== archiveEditing.scope || el.dataset.key !== archiveEditing.key) return;
+    const nameEl = el.querySelector('.edit-name');
+    const kwEl = el.querySelector('.edit-keywords');
+    const contentEl = el.querySelector('.edit-content');
+    const sync = () => {
+      if(archiveEditing && archiveEditing.scope === el.dataset.scope && archiveEditing.key === el.dataset.key){
+        archiveEditing.name = nameEl.value;
+        archiveEditing.keywords = kwEl.value;
+        archiveEditing.content = contentEl.value;
+      }
+    };
+    nameEl.addEventListener('input', sync);
+    kwEl.addEventListener('input', sync);
+    contentEl.addEventListener('input', sync);
+  });
+}
+
+function migrateLocalToGlobal(){
+  const conv = allConvs[currentId];
+  if(!conv) return;
+  const locals = getLocalArchives(conv);
+  if(!locals.length){ alert('当前对话没有独立档案'); return; }
+  if(!confirm('把当前对话的 ' + locals.length + ' 条独立档案迁入全局档案？\n\n名称和内容都相同的会被跳过。')) return;
+
+  const globals = getGlobalArchives().slice();
+  let moved = 0, skipped = 0;
+  for(const it of locals){
+    const dup = globals.find(g => g.name === it.name && g.content === it.content);
+    if(dup){ skipped++; continue; }
+    globals.push({
+      key: uid('a'),
+      name: it.name,
+      keywords: (it.keywords && it.keywords.length) ? it.keywords.slice() : [it.name],
+      content: it.content,
+      enabled: it.enabled !== false
+    });
+    moved++;
+  }
+  if(moved === 0){
+    alert('没有可迁移的档案（' + skipped + ' 条全部重复）。独立档案保持不变。');
+    return;
+  }
+  saveGlobalArchives(globals);
+
+  const clear = confirm('迁移完成：搬了 ' + moved + ' 条，跳过 ' + skipped + ' 条重复。\n\n点「确定」清空独立档案并关闭独立开关；\n点「取消」保留独立档案。');
+  if(clear){
+    conv.archives = [];
+    conv.useLocalArchive = false;
+    conv.updatedAt = Date.now();
+    dbPut(conv).catch(() => {});
+  }
+  archiveEditing = null;
+  renderArchives();
+}
+
+function collectArchiveHits(conv, query){
+  let scan = String(query || '').toLowerCase();
+  if(conv && conv.summary) scan += ' ' + conv.summary.toLowerCase();
+  if(conv && conv.messages){
+    let n = 0;
+    for(let i = conv.messages.length - 1; i >= 0 && n < 3; i--){
+      const m = conv.messages[i];
+      if(m.role === 'user' && m.content){ scan += ' ' + m.content.toLowerCase(); n++; }
+    }
+  }
+  const hits = [];
+  if(isGlobalOn(conv)){
+    for(const it of getGlobalArchives()){
+      if(it.enabled === false) continue;
+      for(const kw of (it.keywords || [])){
+        if(kw && scan.includes(kw.toLowerCase())){ hits.push({ it: it, scope: 'global' }); break; }
+      }
+    }
+  }
+  if(isLocalOn(conv)){
+    for(const it of getLocalArchives(conv)){
+      if(it.enabled === false) continue;
+      for(const kw of (it.keywords || [])){
+        if(kw && scan.includes(kw.toLowerCase())){ hits.push({ it: it, scope: 'local' }); break; }
+      }
+    }
+  }
+  return hits;
+}
+
+function calculateArchiveScore(item, query){
+  const q = String(query || '').toLowerCase();
+  if(!q) return 0;
+  let count = 0, len = 0;
+  for(const kw of (item.keywords || [])){
+    if(kw && q.includes(kw.toLowerCase())){
+      count++;
+      len += kw.length;
+    }
+  }
+  return count * 1000 + len;
+}
+
+function getArchiveNumberMap(conv){
+  const map = new Map();
+  if(isGlobalOn(conv)){
+    getGlobalArchives().forEach((it, i) => map.set(it.key, 'G' + (i + 1)));
+  }
+  if(isLocalOn(conv)){
+    getLocalArchives(conv).forEach((it, i) => map.set(it.key, 'I' + (i + 1)));
+  }
+  return map;
+}
+
+function extractAndRemoveFullRequests(text){
+  const ids = [];
+  const cleaned = String(text || '').replace(
+    /\[ARCHIVE_FULL\]\s*([GI]\d+)\s*\[\/ARCHIVE_FULL\]/gi,
+    (m, id) => { ids.push(id.toUpperCase()); return ''; }
+  ).trim();
+  return { ids: ids, text: cleaned };
+}
+
+function validateFullRequests(requestedIds, injectedInfo){
+  const truncatedIds = new Set(injectedInfo.filter(x => x.truncated).map(x => x.id));
+  const valid = [];
+  const seen = new Set();
+  for(const id of requestedIds){
+    if(seen.has(id)) continue;
+    if(!truncatedIds.has(id)) continue;
+    seen.add(id);
+    valid.push(id);
+    if(valid.length >= ARCHIVE_FULL_MAX) break;
+  }
+  return valid;
+}
+
+function processArchiveTags(text, conv){
+  const globalArr = getGlobalArchives().slice();
+  const localArr = getLocalArchives(conv).slice();
+  const gOn = isGlobalOn(conv);
+  const lOn = isLocalOn(conv);
+  let changed = false;
+  const notices = [];
+  const dels = { global: [], local: [] };
+
+  text = text.replace(/\[ARCHIVE_ADD\]\s*([\s\S]*?)\s*\[\/ARCHIVE_ADD\]/g, (m, body) => {
+    const parts = body.split('|').map(s => s.trim());
+    if(parts.length < 4) return '';
+    const sw = parts[0].toLowerCase();
+    let scope = null;
+    if(sw === '全局' || sw === 'global' || sw === 'g') scope = 'global';
+    else if(sw === '独立' || sw === 'local' || sw === 'l' || sw === 'isolated') scope = 'local';
+    if(!scope) return '';
+    const name = parts[1];
+    if(scope === 'global' && !gOn){
+      notices.push('AI 想把「' + name + '」写入全局档案，但全局档案已关闭');
+      return '';
+    }
+    if(scope === 'local' && !lOn){
+      notices.push('AI 想把「' + name + '」写入独立档案，但独立档案已关闭');
+      return '';
+    }
+    const keywords = parts[2].split(/[,，]/).map(s => s.trim()).filter(Boolean);
+    const content = parts.slice(3).join('|').trim();
+    if(!name || !content) return '';
+    const arr = scope === 'global' ? globalArr : localArr;
+    const dup = arr.find(x => x.name === name && x.content === content);
+    if(dup) return '';
+    const sameName = arr.find(x => x.name === name);
+    if(sameName){
+      notices.push('「' + name + '」已存在同名档案，未覆盖');
+      return '';
+    }
+    arr.push({ key: uid('a'), name: name, keywords: keywords.length ? keywords : [name], content: content, enabled: true });
+    changed = true;
+    return '';
+  });
+
+  text = text.replace(/\[ARCHIVE_UPDATE\]\s*([GI]\d+)\s*\|\s*([^|]*)\|\s*([^|]*)\|\s*([\s\S]*?)\s*\[\/ARCHIVE_UPDATE\]/gi, (m, id, name, keywords, content) => {
+    const p = parseArchiveId(id);
+    if(!p) return '';
+    if(p.scope === 'global' && !gOn) return '';
+    if(p.scope === 'local' && !lOn) return '';
+    const arr = p.scope === 'global' ? globalArr : localArr;
+    if(p.idx < 0 || p.idx >= arr.length) return '';
+    const newName = String(name || '').trim();
+    const newContent = String(content || '').trim();
+    if(!newName || !newContent) return '';
+    const newKeywords = String(keywords || '').split(/[,，]/).map(s => s.trim()).filter(Boolean);
+    arr[p.idx].name = newName;
+    arr[p.idx].keywords = newKeywords.length ? newKeywords : [newName];
+    arr[p.idx].content = newContent;
+    changed = true;
+    return '';
+  });
+
+  text = text.replace(/\[ARCHIVE_DELETE\]\s*([GI]\d+)\s*\[\/ARCHIVE_DELETE\]/gi, (m, id) => {
+    const p = parseArchiveId(id);
+    if(!p) return '';
+    if(p.scope === 'global' && !gOn) return '';
+    if(p.scope === 'local' && !lOn) return '';
+    if(p.idx >= 0) dels[p.scope].push(p.idx);
+    return '';
+  });
+
+  for(const scope of ['global', 'local']){
+    if(!dels[scope].length) continue;
+    const arr = scope === 'global' ? globalArr : localArr;
+    const uniq = Array.from(new Set(dels[scope])).sort((a, b) => b - a);
+    for(const i of uniq){
+      if(i < arr.length){ arr.splice(i, 1); changed = true; }
+    }
+  }
+
+  if(changed){
+    saveGlobalArchives(globalArr);
+    saveArchivesOf(conv, localArr);
+    renderArchives();
+  }
+  return { text: text.trim(), changed: changed, notices: notices };
+}
+
+/* ===== 檔案庫 END ===== */
+
 /* ============ 状态标签 ============ */
 function processStateTags(text, conv){
   let changed = false;
@@ -948,8 +1489,10 @@ function processStateTags(text, conv){
     try{
       const obj = JSON.parse(raw);
       if(obj && typeof obj === 'object' && !Array.isArray(obj)){
-        conv.state = Object.assign({}, cur, obj);
-        changed = true;
+        if(Object.keys(obj).length){
+          conv.state = Object.assign({}, cur, obj);
+          changed = true;
+        }
         return;
       }
     }catch(e){}
@@ -1108,7 +1651,7 @@ const DEFAULT_RPG_PROMPT = [
 '2. 遇到需要随机判定的行动（攻击、潜行、说服、躲避等），按系统指令处理掷骰，不要自己编造点数。',
 '3. 状态变化（血量、物品、地点、好感等）在回复最末尾用下面的标签记录，格式必须严格照抄，否则状态栏不会更新：',
 '   [STATE]{"hp":18,"maxHp":30,"location":"酒馆","present":["掌柜","神秘剑客"],"items":["长剑","药水x2"],"day":15,"date":"弑神历323年冬"}[/STATE]',
-'   只写有变化的字段，没变化的字段不要写。数值用数字，地点用字符串，在场角色 present 用字符串数组。',
+'   只写有变化的字段，没变化的字段不要写。没有任何变化时不要输出 [STATE]，也不要输出空的 [STATE]{}[/STATE]。数值用数字，地点用字符串，在场角色 present 用字符串数组。',
 '   每次场景切换或人物进出时，务必更新 location 和 present。',
 '   只要 location 或 present 的实际值和上一次不同（哪怕只是走进另一个房间），就必须写；不能因为只是「描写」就不写。',
 '   day 是内部计时（数字），date 是对外纪年（字符串，按你的世界观编，如「公历8911年3月」「弑神历323年冬」），两者同步推进。',
@@ -1157,8 +1700,10 @@ function toggleRpg(){
   renderRpgPanel();
   renderSidebar();
   renderRpgState();
+  renderArchives();
   const panel = document.getElementById('rpgPanel');
   if(panel) panel.open = true;
+  updatePanelTabs();
 }
 function updateRpgBtn(){
   const btn = document.getElementById('rpgBtn');
@@ -1693,6 +2238,15 @@ function processLoreTags(text, conv){
   return { text: text.trim(), changed: changed, notices: notices };
 }
 
+function stripArchiveTags(text){
+  let t = String(text || '');
+  t = t.replace(/\[ARCHIVE_ADD\][\s\S]*?\[\/ARCHIVE_ADD\]/g, '');
+  t = t.replace(/\[ARCHIVE_UPDATE\][\s\S]*?\[\/ARCHIVE_UPDATE\]/g, '');
+  t = t.replace(/\[ARCHIVE_DELETE\][\s\S]*?\[\/ARCHIVE_DELETE\]/g, '');
+  t = t.replace(/\[ARCHIVE_FULL\][\s\S]*?\[\/ARCHIVE_FULL\]/gi, '');
+  return t.trim();
+}
+
 function stripRpgTags(text){
   let t = String(text || '');
   t = t.replace(/\[STATE\][\s\S]*?\[\/STATE\]/gi, '');
@@ -1821,7 +2375,7 @@ function endpoint(base){
   return b + '/chat/completions';
 }
 
-function buildStableSystem(cfg, conv, memWarn, loreWarn){
+function buildStableSystem(cfg, conv, memWarn, loreWarn, archiveWarn){
   let sys = (cfg.system || '');
   const rpgOn = getRpgOn(conv);
   const rpgPrompt = getRpgPrompt(conv);
@@ -1879,7 +2433,7 @@ function buildStableSystem(cfg, conv, memWarn, loreWarn){
       + '物种：**种族、生物类别、怪物种类**（精灵、矮人、兽人、龙族、亡灵、魔兽）。**不是个体**——个体归「角色」。物种条目要写清楚：外貌特征、寿命、能力倾向、文化习俗、与其它物种的关系。\n'
       + '特殊物品：有名字、有来历、有特殊作用、独一无二的物件（神器、传家宝、剧情信物、关键道具）。普通装备、消耗品、日常物资不进设定库——那些放状态卡 items 字段。物品条目必须写清楚：「当前持有者：XXX」或「位置：XXX」，以及它的特殊作用 / 来历。持有重要物品的角色条目，必须在内容里点名物品全名。两边用同一个名字，不要用「那把剑」这种代称。\n'
       + '重大事件：改变世界 / 势力格局 / 角色命运 / 重要关系的节点（战争、政变、背叛、结盟、死亡、封印、毁灭、登基、大婚）。日常行动、赶路、寒暄不进设定库。事件条目必须写清楚：时间（day / date）、涉及哪些人 / 势力 / 地点、造成什么后果。\n'
-      + '世界级规则（魔法法则、世界法则、跨对话稳定的约定）→ 写进记忆，不写设定库。\n'
+      + '世界级规则（魔法法则、世界法则、跨对话稳定的约定）→ 优先写进 System（本对话的 System 提示词）；运行中无法修改 System 时写进记忆，不写设定库。\n'
       + '地点里的规矩、禁忌、习俗 → 写进该地点条目的内容，不单列。\n'
       + '势力的制度、禁忌、准则 → 写进该势力条目的内容，不单列。\n'
       + '判断是否写进设定库：只记特殊的、重大的。一般的、随处可得的、不影响剧情走向的，不要写。拿不准 → 不写。\n'
@@ -1915,7 +2469,7 @@ function buildStableSystem(cfg, conv, memWarn, loreWarn){
       + '- 必须是合法 JSON（双引号、逗号分隔、数组用方括号）。\n'
       + '- location 是字符串，present 是字符串数组。\n'
       + '- 必须带 [/STATE] 结束标签。\n'
-      + '- 不写这一行 = 状态卡不更新 = 任务失败。\n'
+      + '- 有变化却不写 = 状态卡不更新 = 任务失败；完全没有变化时不要输出 [STATE]，更不要输出空的 [STATE]{}[/STATE]。\n'
       + '- 即使你只想描写场景，只要场景和上一轮不同，也必须写 [STATE]。\n'
       + '- 不得以「玩家没明确说移动」为理由跳过；你的描写本身即代表场景已变。\n';
 
@@ -1948,6 +2502,47 @@ function buildStableSystem(cfg, conv, memWarn, loreWarn){
       sys += '\n\n【检定掷骰指令】\n本对话未开启骰子检定。不要输出 [ROLL] 标签，也不要编造骰子点数。行动结果由你根据合理性和剧情需要直接叙述。';
     }
   }else{
+    const gOn = isGlobalOn(conv);
+    const lOn = isLocalOn(conv);
+    const globals = getGlobalArchives();
+    const locals = getLocalArchives(conv);
+    if(gOn || lOn){
+      sys += '\n\n【记忆 vs 档案库】\n'
+        + '两种写入位置，用途不同：\n'
+        + '- 核心记忆（MEMORY_*）：每轮都必须知道的事——用户身份、称呼、偏好、禁忌、核心约定、当前项目的核心状态。只写「不记得就会出错」的事。\n'
+        + '- 档案库（ARCHIVE_*）：不需要每轮都知道、但以后可能用到的事——具体人物关系、项目细节、术语定义、历史决定、文件/变量名、一次性结论。按关键词召回，命中才注入。\n';
+      if(gOn && lOn) sys += '  分两个库：全局档案（G 编号）跨对话共用；独立档案（I 编号）只属于本对话。判断：换一个对话还要用吗？是→全局；否→独立。拿不准→独立。\n';
+      else if(gOn) sys += '  只有全局档案（G 编号），跨对话共用。本对话的独立档案已关闭，不要往独立写。\n';
+      else sys += '  只有独立档案（I 编号），只属于本对话。本对话不读取全局档案，不要往全局写。\n';
+      sys += '判断：这件事每轮都必须知道吗？是→核心记忆；否→档案库。拿不准→档案库。';
+      if(gOn && globals.length){
+        sys += '\n\n【全局档案索引】（G 开头，跨对话共用）\n';
+        sys += globals.map((it, i) => 'G' + (i + 1) + ' | ' + it.name + ' | ' + (it.keywords || []).join(',')).join('\n');
+      }
+      if(lOn && locals.length){
+        sys += '\n\n【独立档案索引】（I 开头，只属于本对话）\n';
+        sys += locals.map((it, i) => 'I' + (i + 1) + ' | ' + it.name + ' | ' + (it.keywords || []).join(',')).join('\n');
+      }
+      sys += '\n\n【档案库修改指令】\n在回复最末尾（不要放正文中间）用以下格式修改档案库，一次可多条：\n\n';
+      if(gOn && lOn) sys += '[ARCHIVE_ADD] 全局 | 名称 | 关键词1,关键词2 | 内容 [/ARCHIVE_ADD]\n[ARCHIVE_ADD] 独立 | 名称 | 关键词1,关键词2 | 内容 [/ARCHIVE_ADD]\n';
+      else if(gOn) sys += '[ARCHIVE_ADD] 全局 | 名称 | 关键词1,关键词2 | 内容 [/ARCHIVE_ADD]\n';
+      else sys += '[ARCHIVE_ADD] 独立 | 名称 | 关键词1,关键词2 | 内容 [/ARCHIVE_ADD]\n';
+      sys += '[ARCHIVE_UPDATE] G1 | 名称 | 关键词1,关键词2 | 内容 [/ARCHIVE_UPDATE]\n[ARCHIVE_DELETE] G1 [/ARCHIVE_DELETE]\n\n';
+      sys += '第一段固定填「全局」或「独立」。\n';
+      sys += '关键词：专有名词、简称、别名、缩写、能指向它的独特描述；2–5 个；不要用通用词和单字。\n';
+      sys += 'UPDATE 全字段覆盖：名称、关键词、内容三项都要写，只改内容时名称和关键词原样抄。编号用索引里的（G1、I1 这种）。\n';
+      sys += '什么时候写：用户给出新的人物/项目/术语/事件，或你正式命名了一个会反复出现的概念，且不必每轮知道 → ADD；索引里已有该条目但本轮补全了信息 → UPDATE；条目彻底作废才 DELETE。\n';
+      sys += '不记：寒暄、临时内容、一次性路人、纯情绪表达。不需要修改就不输出这些标签。';
+      const totalVisible = (gOn ? globals.length : 0) + (lOn ? locals.length : 0);
+      if(archiveWarn && totalVisible >= ARCHIVE_SOFT_LIMIT){
+        sys += '\n\n【档案库整理提醒】\n当前可见档案 ' + totalVisible + ' 条，索引偏长。';
+        if(archiveWarn === 2){
+          sys += '请检查：是否有可合并的重复条目、需更新的过时条目、确实不再需要的条目；优先合并和更新，删除要谨慎。需要调整就用 ARCHIVE_UPDATE / ARCHIVE_DELETE，不需要就忽略这条提醒。';
+        }else{
+          sys += '如需合并、更新或删除，忽略这条提醒即可。';
+        }
+      }
+    }
     sys += '\n\n【当前模式】普通聊天模式（RPG 已关闭）。不要输出 [STATE]、[LORE_ADD]、[LORE_UPDATE]、[LORE_DELETE]、[ROLL] 这类标签；它们不会被处理，只会当普通文字显示出来。';
   }
   return sys;
@@ -1956,6 +2551,28 @@ function buildStableSystem(cfg, conv, memWarn, loreWarn){
 function buildDynamicNote(conv, searchNote, ragNote, gapMs){
   const parts = [];
   const rpgOn = getRpgOn(conv);
+
+  if(!rpgOn){
+    try{
+      const q = lastUserText(conv);
+      if(q){
+        const scored = collectArchiveHits(conv, q).map(h => ({ it: h.it, scope: h.scope, score: calculateArchiveScore(h.it, q) }));
+        scored.sort((a, b) => b.score - a.score);
+        const top = scored.slice(0, ARCHIVE_INJECT_TOP_K);
+        const numMap = getArchiveNumberMap(conv);
+        const lines = [];
+        for(const h of top){
+          const id = numMap.get(h.it.key);
+          if(!id) continue;
+          const body = String(h.it.content || '');
+          const shown = body.length > ARCHIVE_CONTENT_MAX ? body.slice(0, ARCHIVE_CONTENT_MAX) + '…[截断，共 ' + body.length + ' 字]' : body;
+          lines.push('【' + (h.scope === 'global' ? '全局' : '独立') + '·' + h.it.name + '·' + id + '】\n' + shown);
+        }
+        if(lines.length) parts.push('【档案库·本轮相关】\n以下档案与当前语境相关，供参考：\n' + lines.join('\n\n'));
+      }
+    }catch(e){ console.warn('档案库检索失败（忽略）：', e); }
+  }
+
 
   if(rpgOn && conv && conv.state && typeof conv.state === 'object'){
     const st = conv.state;
@@ -2063,7 +2680,6 @@ function normalizeMsg(m){
   return r;
 }
 
-const GLOBAL_ARCHIVE_KEY_RPG = 'chatGlobalArchives_RPG';
 
 async function newConversation(){
   const empty = Object.values(allConvs).find(c => !c.messages.length);
@@ -2076,6 +2692,8 @@ async function newConversation(){
     diceOn: true,
     lore: [],
     archives: [],
+    lastArchiveWarn: 0,
+    useGlobalArchive: true, useLocalArchive: true,
     sysScope: 'global', system: '',
     lastUserAt: 0, lastMemWarn: 0, lastLoreWarn: 0,
     createdAt: Date.now(), updatedAt: Date.now()
@@ -2092,6 +2710,7 @@ function selectConversation(id){
   renderChat(true);
   updateTitle();
   renderMemory();
+  renderArchives();
   updateRpgBtn();
   renderRpgPanel();
   syncSystemPromptInput();
@@ -2298,11 +2917,13 @@ function clearConversation(){
   conv.lastUserAt = 0;
   conv.lastMemWarn = 0;
   conv.lastLoreWarn = 0;
+  conv.lastArchiveWarn = 0;
   conv.updatedAt = Date.now();
   dbPut(conv).catch(e => console.error(e));
   renderChat(true);
   renderSidebar();
   updateTitle();
+  renderArchives();
   renderSceneBar();
   renderStatePanel();
   updateStateMini();
@@ -2422,7 +3043,10 @@ async function importAll(event){
         rpgPrompt: getRpgPrompt(c),
         diceOn: c.diceOn !== false,
         lore,
-        archives: Array.isArray(c.archives) ? c.archives : [],
+        archives: Array.isArray(c.archives) ? c.archives.map(normArchiveItem) : [],
+        lastArchiveWarn: typeof c.lastArchiveWarn === 'number' ? c.lastArchiveWarn : 0,
+        useGlobalArchive: c.useGlobalArchive !== false,
+        useLocalArchive: c.useLocalArchive !== false,
         sysScope: c.sysScope === 'isolated' ? 'isolated' : 'global',
         system: typeof c.system === 'string' ? c.system : '',
         lastUserAt: typeof c.lastUserAt === 'number' ? c.lastUserAt : 0,
@@ -2442,6 +3066,7 @@ async function importAll(event){
       });
       saveMemory(mem);
       renderMemory();
+      renderArchives();
     }
     if(data.globalArchives && Array.isArray(data.globalArchives)){
       try{
@@ -2904,6 +3529,23 @@ async function runCompletion(conv, overrideMessages, gapMs){
         dbPut(conv).catch(() => {});
       }
 
+      const archiveCount = totalVisibleArchives(conv);
+      let archiveWarn = 0;
+      if(!getRpgOn(conv) && archiveCount >= ARCHIVE_SOFT_LIMIT){
+        const lastWarn = conv.lastArchiveWarn || 0;
+        if(archiveCount > lastWarn){
+          archiveWarn = 2;
+          conv.lastArchiveWarn = archiveCount;
+          conv.updatedAt = Date.now();
+          dbPut(conv).catch(() => {});
+        }else{
+          archiveWarn = 1;
+        }
+      }else if(conv.lastArchiveWarn){
+        conv.lastArchiveWarn = 0;
+        dbPut(conv).catch(() => {});
+      }
+
       const dynPrefix = buildDynamicNote(conv, searchNote, ragNote, gapMs);
 
       const history = [];
@@ -2915,7 +3557,7 @@ async function runCompletion(conv, overrideMessages, gapMs){
         history.push({ role: m.role, content: c });
       }
 
-      const stableSys = buildStableSystem(cfg, conv, memWarn, loreWarn);
+      const stableSys = buildStableSystem(cfg, conv, memWarn, loreWarn, archiveWarn);
       const msgs = stableSys ? [{ role: 'system', content: stableSys }, ...history] : [...history];
 
       let lastUserIdx = -1;
@@ -3041,8 +3683,8 @@ async function runCompletion(conv, overrideMessages, gapMs){
     placeholder.pending = false;
 
     let finalText = placeholder.content || '';
-    let stChanged = false, lrChanged = false;
-    let stNotices = [], lrNotices = [];
+    let stChanged = false, lrChanged = false, arChanged = false;
+    let stNotices = [], lrNotices = [], arNotices = [];
     if(getRpgOn(conv)){
       const st = processStateTags(finalText, conv);
       finalText = st.text;
@@ -3052,8 +3694,14 @@ async function runCompletion(conv, overrideMessages, gapMs){
       finalText = lr.text;
       lrChanged = lr.changed;
       lrNotices = lr.notices || [];
+      finalText = stripArchiveTags(finalText);
     }else{
+      const ar = processArchiveTags(finalText, conv);
+      finalText = ar.text;
+      arChanged = ar.changed;
+      arNotices = ar.notices || [];
       finalText = stripRpgTags(finalText);
+      finalText = stripArchiveTags(finalText);
     }
     const mr = processMemoryTags(finalText, conv);
     finalText = mr.text;
@@ -3072,9 +3720,10 @@ async function runCompletion(conv, overrideMessages, gapMs){
     placeholder.content = finalText;
 
     const noticeParts = [];
-    if(!finalText && (mr.changed || stChanged || lrChanged)) noticeParts.push('✅ 已更新状态/记忆/设定');
+    if(!finalText && (mr.changed || stChanged || lrChanged || arChanged)) noticeParts.push('✅ 已更新状态/记忆/设定');
     if(stNotices.length) noticeParts.push(stNotices.join('；'));
     if(lrNotices.length) noticeParts.push(lrNotices.join('；'));
+    if(arNotices.length) noticeParts.push(arNotices.join('；'));
     if(noticeParts.length) placeholder.notice = noticeParts.join('；');
 
     if(rollReq){
@@ -3174,7 +3823,37 @@ function onChatClick(e){
   else if(btn.dataset.act === 'delete') deleteMessage(msg.key);
 }
 
+function updatePanelTabs(){
+  document.querySelectorAll('#panelTabs button').forEach(btn => {
+    const el = document.getElementById(btn.dataset.panel);
+    btn.classList.toggle('on', !!(el && el.open));
+  });
+}
+function initPanelTabs(){
+  const tabs = document.getElementById('panelTabs');
+  if(!tabs) return;
+  tabs.querySelectorAll('button[data-panel]').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.panel;
+      const target = document.getElementById(id);
+      if(!target) return;
+      const willOpen = !target.open;
+      ['config','memoryPanel','archivePanel','rpgPanel'].forEach(x => {
+        const d = document.getElementById(x);
+        if(d) d.open = false;
+      });
+      if(willOpen) target.open = true;
+      updatePanelTabs();
+    };
+  });
+  ['config','memoryPanel','archivePanel','rpgPanel'].forEach(id => {
+    const d = document.getElementById(id);
+    if(d) d.addEventListener('toggle', updatePanelTabs);
+  });
+}
+
 function bindEvents(){
+  initPanelTabs();
   document.getElementById('newBtn').onclick = () => newConversation();
   document.getElementById('menuBtn').onclick = openSidebar;
   document.getElementById('scrim').onclick = closeSidebar;
@@ -3280,7 +3959,10 @@ async function boot(){
         rpgPrompt: getRpgPrompt(c),
         diceOn: c.diceOn !== false,
         lore,
-        archives: Array.isArray(c.archives) ? c.archives : [],
+        archives: Array.isArray(c.archives) ? c.archives.map(normArchiveItem) : [],
+        lastArchiveWarn: typeof c.lastArchiveWarn === 'number' ? c.lastArchiveWarn : 0,
+        useGlobalArchive: c.useGlobalArchive !== false,
+        useLocalArchive: c.useLocalArchive !== false,
         sysScope: c.sysScope === 'isolated' ? 'isolated' : 'global',
         system: typeof c.system === 'string' ? c.system : '',
         lastUserAt: typeof c.lastUserAt === 'number' ? c.lastUserAt : 0,
